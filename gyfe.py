@@ -370,7 +370,6 @@ def save_breadths(args):
     # * remove courses with unavailable slots
     df = df[~df["Slot"].str.contains("|".join(all_unavailable_slots), na=False)]
     df.set_index("Course Code", inplace=True)
-    print(df.to_string())
     # save available electives
     with open("available_breadths.txt", "w") as f:
         f.write(tabulate(df, headers="keys", tablefmt="fancy_grid"))
