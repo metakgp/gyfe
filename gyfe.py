@@ -39,7 +39,7 @@ def find_core_courses(headers, session, args):
     core_courses = response.json()
     
     for course in core_courses:
-        if course['subno'] != "":
+        if course['subtype'] == 'Depth CORE':
             core_course_codes.append(course['subno'])
     
     return core_course_codes
