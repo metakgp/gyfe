@@ -29,36 +29,19 @@ def parse_args():
 
 
 def find_core_courses(headers, session, args):
-    COURSES_URL = f"https://erp.iitkgp.ac.in/Acad/new_curr_subject/get_details.jsp?action=second&year=null&course={DEPT}&session1={args.session}&type=UG"
+
+    semester = 2 * args.year - 1 if args.semester == "AUTUMN" else 2 * args.year
+    COURSES_URL = f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={semester}"
 
     # * Get code of core courses
-
-    response = session.get(COURSES_URL, headers=headers)
-    semester = 2 * args.year - 1 if args.semester == "AUTUMN" else 2 * args.year
-    soup = bs(response.text, "html.parser")
-    course_table = soup.find("table", {"id": "disptab"})
-
-    for sem_tr in course_table.find_all("tr", bgcolor="#8EEBEC"):
-        semester_number = (
-            sem_tr.find("font", color="blue").b.text.strip().split("-")[-1].strip()
-        )
-        if semester_number == str(semester):
-            start_tr = sem_tr.find_next_sibling("tr")
-            break
-
-    # Extract all course codes from the semester section
     core_course_codes = []
-    curr_tr = start_tr
-    while 1:
-        # stop when you find tr that contains a td with colspan=5 and align=center -> this means start of next section
-        if curr_tr.find("td", {"colspan": "5", "align": "center"}):
-            break
-
-        course_code = curr_tr.find("td", {"width": "5%", "title": " "}).text.strip()
-
-        core_course_codes.append(course_code)
-
-        curr_tr = curr_tr.find_next_sibling("tr")
+    response = session.post(COURSES_URL, headers=headers)
+    core_courses = response.json()
+    
+    for course in core_courses:
+        if course['subno'] != "":
+            core_course_codes.append(course['subno'])
+    
     return core_course_codes
 
 
@@ -105,7 +88,7 @@ def save_depths(args):
     Workflow:
             - Check DeptWise timetable and scrape subjects
             - Make sure those subjects are not overlapping with core courses
-                    - Subtask: find coure courses
+                    - Subtask: find core courses
             - Go to Deptwise subject list to additionally scrape prof name and slot
     """
 
