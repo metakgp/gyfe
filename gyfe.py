@@ -23,7 +23,7 @@ def parse_args():
         "--session", type=str, default="2023-2024", help="Session (eg. 2023-2024)"
     )
     parser.add_argument(
-        "--semester", type=str, default="AUTUMN", help="Semester (AUTUMN/SPRING)"
+        "--semester", type=str, default="SPRING", help="Semester (AUTUMN/SPRING)"
     )
     return parser.parse_args()
 
@@ -118,9 +118,8 @@ def save_depths(args):
         )
 
     TIMETABLE_URL = f"https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={args.session}&index={args.year}&semester={args.semester}&dept={DEPT}"
-    SUBJ_LIST_URL = (
-        f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
-    )
+    SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={args.session}&for_semester={args.semester}&dept={DEPT}"
+
 
     # *First get list of depths
     response = session.get(TIMETABLE_URL, headers=headers)
@@ -138,28 +137,30 @@ def save_depths(args):
     # Loop through each row and extract the course details
     for row in rows:
         cells = row.find_all("td", align="center")
-        pattern = r"([A-Z0-9\s-]+)<br/>([A-Z0-9\s-]+)"  # compulsory courses have prof mentioned in 2nd line, using this to filter out
+        # pattern = r"([A-Z0-9\s-]+)<br/>([A-Z0-9\s-]+)"  # compulsory courses have prof mentioned in 2nd line, using this to filter out
         for cell in cells:
             a_tag = cell.find("a")
-            matches = re.findall(pattern, str(a_tag))
-            if matches != []:
-                course_code = matches[0][0]
-                venue = matches[0][1]
+            # matches = re.findall(pattern, str(a_tag))
+            matches = a_tag.find_all(string=True)
+            if len(matches) > 1:
+                course_code = matches[0]
                 depth_course_codes.append(course_code)
-                venues.append(venue)
 
-    data = {"Course Code": depth_course_codes, "Venue": venues}
+    data = {"Course Code": depth_course_codes}
     df_depths = pd.DataFrame(data=data)
     df_depths.drop_duplicates(subset=["Course Code"], inplace=True)
 
     # * Get code of core courses
     core_course_codes = find_core_courses(headers, session, args)
 
+    #* Remove core courses from depths
+    df_depths = df_depths[~df_depths["Course Code"].isin(core_course_codes)]
+
     # * Now get prof names and slots
     response = session.get(SUBJ_LIST_URL, headers=headers)
     soup = bs(response.text, "html.parser")
 
-    # Extract course information from the table rows
+    #* Extract course information from the table rows
     courses = []
     parentTable = soup.find("table", {"id": "disptab"})
     rows = parentTable.find_all("tr")
@@ -174,6 +175,7 @@ def save_depths(args):
         course["Faculty"] = cells[2].text
         course["LTP"] = cells[3].text
         course["Slot"] = cells[5].text
+        course["Room"] = cells[6].text
 
         # adding which minor the course helps you get
         course["Minor"] = "-"
@@ -201,11 +203,6 @@ def save_depths(args):
 
     # remove courses with unavailable slots
     df_all = df_all[~df_all["Slot"].isin(all_unavailable_slots)]
-
-    # merge with df_depths to get venue
-    df_all = pd.merge(df_all, df_depths, on="Course Code", how="inner").drop_duplicates(
-        subset=["Course Code"]
-    )
 
     df_all.set_index("Course Code", inplace=True)
 
