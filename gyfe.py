@@ -9,24 +9,7 @@ from tabulate import tabulate
 import re
 import json
 
-roll = input("Roll number: ")
-DEPT = roll[2:4]
-passw = input("Password: ")
-
-# Login process through CLI
-headers = {
-        "timeout": "20",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
-    }
-session = requests.Session()
-sessionToken = erp.get_sessiontoken(session) 
-secret_question = erp.get_secret_question(headers, session, roll)
-secret_answer = input(secret_question+": ")
-loginDetails = erp.get_login_details(roll, passw, secret_answer, sessionToken)
-erp.request_otp(headers=headers, session=session, login_details=loginDetails, log=False) 
-otp = input("Enter OTP sent on mail: ")
-loginDetails["email_otp"] = otp
-ssoToken = erp.signin(headers, session, loginDetails)
+DEPT = erpcreds.ROLL_NUMBER[2:4]
 
 
 def parse_args():
@@ -108,6 +91,31 @@ def save_depths(args):
                     - Subtask: find core courses
             - Go to Deptwise subject list to additionally scrape prof name and slot
     """
+
+    headers = {
+        "timeout": "20",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
+    }
+
+    session = requests.Session()
+
+    if args.notp:
+        _, ssoToken = erp.login(
+            headers,
+            session,
+            ERPCREDS=erpcreds,
+            LOGGING=True,
+            SESSION_STORAGE_FILE=".session",
+        )
+    else:
+        _, ssoToken = erp.login(
+            headers,
+            session,
+            ERPCREDS=erpcreds,
+            OTP_CHECK_INTERVAL=2,
+            LOGGING=True,
+            SESSION_STORAGE_FILE=".session",
+        )
 
     TIMETABLE_URL = f"https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={args.session}&index={args.year}&semester={args.semester}&dept={DEPT}"
     SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={args.session}&for_semester={args.semester}&dept={DEPT}"
@@ -211,6 +219,31 @@ def save_breadths(args):
             - Check breadth list to get all breadth electives
             - Similar to save_depths, find unavailable slots and filter breadth electives
     """
+
+    headers = {
+        "timeout": "20",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
+    }
+
+    session = requests.Session()
+
+    if args.notp:
+        _, ssoToken = erp.login(
+            headers,
+            session,
+            ERPCREDS=erpcreds,
+            LOGGING=True,
+            SESSION_STORAGE_FILE=".session",
+        )
+    else:
+        _, ssoToken = erp.login(
+            headers,
+            session,
+            ERPCREDS=erpcreds,
+            OTP_CHECK_INTERVAL=2,
+            LOGGING=True,
+            SESSION_STORAGE_FILE=".session",
+        )
 
     ERP_ELECTIVES_URL = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"
     SUBJ_LIST_URL = (
