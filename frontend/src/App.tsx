@@ -1,6 +1,6 @@
 // import { useState } from 'react'
 import React from 'react';
-import './styles/App.css'
+import './styles/App.scss'
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Form from './components/Form'
