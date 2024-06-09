@@ -68,9 +68,12 @@ def find_all_unavailable_slots(unavailable_slots):
 
         # else, if there is F3 slot for example, add F2, F4 to unavailable slots, and vice versa similarly for whatever letters are there
         else:
-            all_unavailable_slots.append(slot[0] + "2")
-            all_unavailable_slots.append(slot[0] + "3")
-            all_unavailable_slots.append(slot[0] + "4")
+            try:
+                all_unavailable_slots.append(slot[0] + "2")
+                all_unavailable_slots.append(slot[0] + "3")
+                all_unavailable_slots.append(slot[0] + "4")
+            except:
+                pass
 
             # check if there are any lab slots overlapping with it
             for parent, slots in overlaps.items():
@@ -145,6 +148,9 @@ def save_depths(args):
             if len(matches) > 1:
                 course_code = matches[0]
                 depth_course_codes.append(course_code)
+            else:
+                course_code = "NIL"
+                depth_course_codes.append(course_code)
 
     data = {"Course Code": depth_course_codes}
     df_depths = pd.DataFrame(data=data)
@@ -164,18 +170,31 @@ def save_depths(args):
     courses = []
     parentTable = soup.find("table", {"id": "disptab"})
     rows = parentTable.find_all("tr")
-
+    
+    try:
+        codes = course_code.strip()
+    except:
+        codes = "NIL"
+    
     for row in rows[1:]:
         if "bgcolor" in row.attrs:
             continue
         cells = row.find_all("td")
         course = {}
-        course["Course Code"] = cells[0].text
-        course["Name"] = cells[1].text
-        course["Faculty"] = cells[2].text
-        course["LTP"] = cells[3].text
-        course["Slot"] = cells[5].text
-        course["Room"] = cells[6].text
+        if len(cells) > 6:
+            course["Course Code"] = cells[0].text
+            course["Name"] = cells[1].text
+            course["Faculty"] = cells[2].text
+            course["LTP"] = cells[3].text
+            course["Slot"] = cells[5].text
+            course["Room"] = cells[6].text
+        else:
+            course["Course Code"] = "NIL"
+            course["Name"] = "NIL"
+            course["Faculty"] = "NIL"
+            course["LTP"] = "NIL"
+            course["Slot"] = "NIL"
+            course["Room"] = "NIL"
 
         # adding which minor the course helps you get
         course["Minor"] = "-"
@@ -184,7 +203,7 @@ def save_depths(args):
         for lst in code_list:
             pos = code_list.index(lst)
             for ele in lst:
-                if course_code.strip() == ele:
+                if codes == ele:
                     course["Minor"] = course_list[pos]
 
         courses.append(course)
