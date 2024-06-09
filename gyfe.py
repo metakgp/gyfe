@@ -148,9 +148,6 @@ def save_depths(args):
             if len(matches) > 1:
                 course_code = matches[0]
                 depth_course_codes.append(course_code)
-            else:
-                course_code = "NIL"
-                depth_course_codes.append(course_code)
 
     data = {"Course Code": depth_course_codes}
     df_depths = pd.DataFrame(data=data)
