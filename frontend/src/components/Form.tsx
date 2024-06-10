@@ -1,5 +1,6 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom'
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 
@@ -15,8 +16,16 @@ const schema = yup.object().shape({
 });
 
 const Form: React.FC = () => {
+
+    const navigate = useNavigate();
+    const getQuestion = () => {
+      navigate("/login");
+    }
+
     const {register, handleSubmit, formState: {errors}} = useForm<IFormInput> ({ resolver: yupResolver(schema)});
+
     const onSubmit = (data: IFormInput) => {
+      getQuestion();
       console.log(data);
     }
 
@@ -24,15 +33,15 @@ const Form: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)} method='POST'>
             <div className='roll'>
               <label>Roll number: </label>
-              <input type="text" placeholder='Roll number for ERP, e.g. 22AE10024' {...register("roll")}/>
-              {errors.roll && <p>{errors.roll.message}</p>}
+              <input type="text" placeholder='Roll number for ERP, e.g. 22AE10024' className='input-box' {...register("roll")}/>
+              {errors.roll && <p style={{color: "red"}}>{errors.roll.message}</p>}
             </div>
             <div className='passwd'>
               <label>Password: </label>
-              <input type="password" placeholder='Password for ERP login' {...register("passwd")}/>
-              {errors.passwd && <p>{errors.passwd.message}</p>}
+              <input type="password" placeholder='Password for ERP login' className='input-box' {...register("passwd")}/>
+              {errors.passwd && <p style={{color: "red"}}>{errors.passwd.message}</p>}
             </div>
-            <div><input type="submit" className='btn' value="Get security question"/></div>
+            <div><button type="submit" className='btn'>Get security question</button></div>
         </form>
     );
 }

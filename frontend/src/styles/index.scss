@@ -1,34 +1,58 @@
 @import url('https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap');
+@mixin flexColumn {
+  display: flex;
+  flex-direction: column;
+}
+@mixin custom-btn{
+  padding: 0.5em 2em;
+  border-radius: 10px;
+  font-family: $metakgp-font;
+  font-size: 1.2em;
+  border: 1px solid #afa4a4;
+}
+@mixin inputBox{
 
+}
+
+$metakgp-black: #242424;
+$metakgp-white: rgb(236, 227, 227);
+$metakgp-font: 'Titillium Web', sans-serif;
+$cursive-font: 'Kalam', sans-serif;
+$purple: #646cff;
 * {
 	padding: 0;
 	margin: 0;
 	box-sizing: border-box;
+  user-select: none;
 }
 
 html {
-	font-family: 'Titillium Web', sans-serif;
+	font-family: $metakgp-font;
 	font-size: 14px;
 }
 
 form{
-  display: flex;
-  flex-direction: column;
-  row-gap: 1.2em;
+  @include flexColumn;
+  row-gap: 2em;
 }
 
-.roll, .passwd {
-  display: flex;
-  flex-direction: column;
+.roll, .passwd, .question, .login-form{
+  @include flexColumn;
+  align-items: center;
+}
+
+.login-form{
+  row-gap: 2em;
 }
 
 :root {
-  line-height: 1.5;
+  line-height: 2.0;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+  color: $metakgp-black;
+  background-color: $metakgp-white;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -38,7 +62,7 @@ form{
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: $purple;
   text-decoration: inherit;
 }
 a:hover {
@@ -55,23 +79,77 @@ body {
 
 h1 {
   font-size: 3.2em;
-  line-height: 1.1;
+  line-height: 1.0;
+  #word{
+    font-family: $cursive-font;
+  }
 }
 
 .btn{
   background-color: green;
+  color: $metakgp-white;
   border: none;
-  padding: 0.7em;
-  border-radius: 7px;
-  font-family: 'Titillium Web', sans-serif;
+  padding: 0.6em;
+  border-radius: 10px;
+  font-family: $metakgp-font;
+  font-size: 1.3em;
+  font-weight: 600;
+  position: relative;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+footer{
+  position: relative;
+  top: 5em;
+
+}
+
+.header{
+  position: relative;
+  bottom: 6rem;
+}
+
+label{
+  font-size: 20px;
+  font-weight: 550;
+}
+
+.otp{
+  @include custom-btn;
+  background-color: green;
+}
+
+.login-btn{
+  @include custom-btn;
+  background-color: $purple;
+}
+
+.input-box{
+  width: 70%;
+  padding: 1em;
+  border: 2px solid #afa4a4;
+  border-radius: 10px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1.1rem;
+  transition: box-shadow 0.1s ease-in-out;
+  text-align: center;
+
+  &:focus{
+    border: 2px solid rgb(122, 106, 106);
+    outline: none;
+    box-shadow: 0 0 10px rgba(157, 129, 233, 0.8);  
   }
-  a:hover {
-    color: #747bff;
+  &::placeholder{
+    text-align: center;
   }
 }
+
+.box{
+  width: 25rem;
+}
+
+// @media (prefers-color-scheme: light) {
+//   :root {
+//     color: #213547;
+//     background-color: #ffffff;
+//   }
+// }
