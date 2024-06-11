@@ -1,48 +1,55 @@
 @import url('https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap');
+
 @mixin flexColumn {
   display: flex;
   flex-direction: column;
 }
-@mixin custom-btn{
+
+@mixin custom-btn {
   padding: 0.5em 2em;
   border-radius: 10px;
+  color: $metakgp-white;
   font-family: $metakgp-font;
   font-size: 1.2em;
   border: 1px solid #afa4a4;
 }
-@mixin inputBox{
 
-}
+@mixin inputBox {}
 
 $metakgp-black: #242424;
 $metakgp-white: rgb(236, 227, 227);
 $metakgp-font: 'Titillium Web', sans-serif;
 $cursive-font: 'Kalam', sans-serif;
 $purple: #646cff;
+
 * {
-	padding: 0;
-	margin: 0;
-	box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
   user-select: none;
 }
 
 html {
-	font-family: $metakgp-font;
-	font-size: 14px;
+  font-family: $metakgp-font;
+  font-size: 14px;
 }
 
-form{
+form {
   @include flexColumn;
   row-gap: 2em;
 }
 
-.roll, .passwd, .question, .login-form{
+.roll,
+.passwd,
+.question,
+.login-form,
+.electives {
   @include flexColumn;
   align-items: center;
 }
 
-.login-form{
+.login-form {
   row-gap: 2em;
 }
 
@@ -65,6 +72,7 @@ a {
   color: $purple;
   text-decoration: inherit;
 }
+
 a:hover {
   color: #535bf2;
 }
@@ -80,12 +88,13 @@ body {
 h1 {
   font-size: 3.2em;
   line-height: 1.0;
-  #word{
+
+  #word {
     font-family: $cursive-font;
   }
 }
 
-.btn{
+.btn {
   background-color: green;
   color: $metakgp-white;
   border: none;
@@ -97,33 +106,50 @@ h1 {
   position: relative;
 }
 
-footer{
+footer {
   position: relative;
   top: 5em;
 
 }
 
-.header{
+.header {
   position: relative;
   bottom: 6rem;
 }
 
-label{
+label {
   font-size: 20px;
   font-weight: 550;
 }
 
-.otp{
+.otp,
+.download {
   @include custom-btn;
   background-color: green;
+
+  &:hover {
+    background-color: rgb(2, 110, 2);
+  }
+
+  &:focus {
+    background-color: rgb(3, 92, 3);
+  }
 }
 
-.login-btn{
+.login-btn {
   @include custom-btn;
   background-color: $purple;
+
+  &:hover {
+    background-color: #535bf2;
+  }
+
+  &:focus {
+    background-color: #3e45c9;
+  }
 }
 
-.input-box{
+.input-box {
   width: 70%;
   padding: 1em;
   border: 2px solid #afa4a4;
@@ -133,18 +159,27 @@ label{
   transition: box-shadow 0.1s ease-in-out;
   text-align: center;
 
-  &:focus{
+  &:focus {
     border: 2px solid rgb(122, 106, 106);
     outline: none;
-    box-shadow: 0 0 10px rgba(157, 129, 233, 0.8);  
+    box-shadow: 0 0 10px rgba(157, 129, 233, 0.8);
   }
-  &::placeholder{
+
+  &::placeholder {
     text-align: center;
   }
 }
 
-.box{
+.box {
   width: 25rem;
+}
+
+.electives {
+  row-gap: 3rem;
+}
+
+.depth{
+  padding: 0.5em 2.45em;
 }
 
 // @media (prefers-color-scheme: light) {

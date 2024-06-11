@@ -1,6 +1,5 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom'
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 
@@ -15,22 +14,22 @@ const schema = yup.object().shape({
   passwd: yup.string().required("Password is required!")
 });
 
-const Form: React.FC = () => {
+interface FormProps {
+  onSubmit: () => void;
+}
 
-    const navigate = useNavigate();
-    const getQuestion = () => {
-      navigate("/login");
-    }
+
+const RollForm: React.FC<FormProps> = ({onSubmit}) => {
 
     const {register, handleSubmit, formState: {errors}} = useForm<IFormInput> ({ resolver: yupResolver(schema)});
 
-    const onSubmit = (data: IFormInput) => {
-      getQuestion();
-      console.log(data);
+    const handleFormSubmit = (data: IFormInput) => {
+      console.log(data); // Or send data to an API endpoint
+      onSubmit();
     }
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} method='POST'>
+        <form onSubmit={handleSubmit(handleFormSubmit)} method='POST'>
             <div className='roll'>
               <label>Roll number: </label>
               <input type="text" placeholder='Roll number for ERP, e.g. 22AE10024' className='input-box' {...register("roll")}/>
@@ -46,4 +45,4 @@ const Form: React.FC = () => {
     );
 }
 
-export default Form;
+export default RollForm;
