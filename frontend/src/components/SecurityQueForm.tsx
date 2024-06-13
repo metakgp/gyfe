@@ -34,7 +34,7 @@ const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
       const otp = getValues('otp'); //Send this otp to api
       console.log(otp);
       updateStatus(); //call this method only if response is OK from api
-      navigate('/electives');
+      navigate('/');
     }
 
     return (
