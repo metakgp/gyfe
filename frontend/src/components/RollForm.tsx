@@ -25,6 +25,8 @@ const RollForm: React.FC<FormProps> = ({onSubmit}) => {
 
     const handleFormSubmit = (data: IFormInput) => {
       console.log(data); // Or send data to an API endpoint
+      sessionStorage.setItem("roll",data.roll);
+      sessionStorage.setItem("passwd",data.passwd);
       onSubmit();
     }
 
@@ -40,7 +42,7 @@ const RollForm: React.FC<FormProps> = ({onSubmit}) => {
               <input type="password" placeholder='Password for ERP login' className='input-box' {...register("passwd")}/>
               {errors.passwd && <p style={{color: "red"}}>{errors.passwd.message}</p>}
             </div>
-            <div><button type="submit" className='btn'>Get security question</button></div>
+            <div className='que-btn'><button type="submit" className='btn'>Get security question</button></div>
         </form>
     );
 }
