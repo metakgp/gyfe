@@ -8,37 +8,14 @@ from tabulate import tabulate
 import re
 import json
 
-erpcreds = None
 DEPT : str = None
 
-def ensure_creds():
-    try:
-        import erpcreds as cred
-        erpcreds = cred
-        print("[+] Credentials found.")
-        update = input("Do you want to update your credentials? (Y/n) [default: no]: ").lower()
-        if update == 'y':
-            gen_creds()
-    except:
-        print("[-] No credentials found. Creating a credential file...")
-        gen_creds()
-        import erpcreds as cred
-        erpcreds = cred
+try:
+    import erpcreds
     DEPT = erpcreds.ROLL_NUMBER[2:4]
-
-def gen_creds():
-    ROLL = input("Your Roll NO.: ")
-    PWD = input("ERP Password: ")
-    SECURITY_QUESTIONS_ANSWERS = {}
-    for i in range(3):
-        sec_que = input(f"Enter your Security-Question-{i+1}: ")
-        sec_ans = input("Answer for above question: ") 
-        SECURITY_QUESTIONS_ANSWERS[sec_que] = sec_ans
-    with open('erpcreds.py','w') as cred:
-        cred.write(f"ROLL_NUMBER = '{ROLL}'\n")
-        cred.write(f"PASSWORD = '{PWD}'\n")
-        cred.write(f"SECURITY_QUESTIONS_ANSWERS = {str(SECURITY_QUESTIONS_ANSWERS)}")
-    print("[+] Credentials added.")
+    manual = False
+except:
+    manual  = True
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Get depth electives from ERP")
@@ -367,33 +344,74 @@ def save_breadths(args, session, create_file=True):
     else:
         return df.to_csv(index=False)
 
+def manual_login():
+    session = requests.Session()
+    headers = {
+        "timeout": "20",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
+    }
+    
+    print("[-] Credentials not found. Manual login enabled.")
+    sessionToken = erp.get_sessiontoken(session)
+    ROLL = input("Enter your Roll No.: ")
+    DEPT = ROLL[2:4]
+    sec_question = erp.get_secret_question(headers, session, ROLL)
+    PWD = input("Enter Password: ")
+    ANS = input(f"{sec_question}: ")
+    data = erp.get_login_details(ROLL, PWD, ANS, sessionToken)
+    erp.request_otp(headers, session, data)
+    print("[+] OTP sent.")
+    OTP = input("Enter OTP: ")
+    data["email_otp"] = OTP
+    ssoToken = erp.signin(headers, session, data)
+    print("[+] Login successful.")
+    with open(".session",'w') as file:
+        file.write(f"{sessionToken}\n{ssoToken}\n")
+    return session
 
 def main():
     args = parse_args()
-    ensure_creds()
 
     session = requests.Session()
     headers = {
         "timeout": "20",
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
     }
-    if args.notp:
-        _, ssoToken = erp.login(
-            headers,
-            session,
-            ERPCREDS=erpcreds,
-            LOGGING=True,
-            SESSION_STORAGE_FILE=".session",
-        )
+
+    if manual:
+        try:
+            with open('.session', 'r') as file:
+                lines = file.readlines()
+                if len(lines) > 1:
+                    ssoToken = lines[1].strip()
+                    erp.populate_session_with_login_tokens(session, ssoToken)
+                    if erp.session_alive(session):
+                        print("[+] Token Valid.")
+                        DEPT = input("Enter your branch code: ").upper()
+                    else:
+                        session = manual_login()
+                else:
+                    session = manual_login()
+        except FileNotFoundError:
+            session = manual_login()
     else:
-        _, ssoToken = erp.login(
-            headers,
-            session,
-            ERPCREDS=erpcreds,
-            OTP_CHECK_INTERVAL=2,
-            LOGGING=True,
-            SESSION_STORAGE_FILE=".session",
-        )
+        if args.notp:
+            _, ssoToken = erp.login(
+                headers,
+                session,
+                ERPCREDS=erpcreds,
+                LOGGING=True,
+                SESSION_STORAGE_FILE=".session",
+            )
+        else:
+            _, ssoToken = erp.login(
+                headers,
+                session,
+                ERPCREDS=erpcreds,
+                OTP_CHECK_INTERVAL=2,
+                LOGGING=True,
+                SESSION_STORAGE_FILE=".session",
+            )
     
     if args.electives == "breadth":
         save_breadths(args, session)
