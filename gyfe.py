@@ -344,30 +344,6 @@ def save_breadths(args, session, create_file=True):
     else:
         return df.to_csv(index=False)
 
-def manual_login():
-    session = requests.Session()
-    headers = {
-        "timeout": "20",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
-    }
-    
-    print("[-] Credentials not found. Manual login enabled.")
-    sessionToken = erp.get_sessiontoken(session)
-    ROLL = input("Enter your Roll No.: ")
-    DEPT = ROLL[2:4]
-    sec_question = erp.get_secret_question(headers, session, ROLL)
-    PWD = input("Enter Password: ")
-    ANS = input(f"{sec_question}: ")
-    data = erp.get_login_details(ROLL, PWD, ANS, sessionToken)
-    erp.request_otp(headers, session, data)
-    print("[+] OTP sent.")
-    OTP = input("Enter OTP: ")
-    data["email_otp"] = OTP
-    ssoToken = erp.signin(headers, session, data)
-    print("[+] Login successful.")
-    with open(".session",'w') as file:
-        file.write(f"{sessionToken}\n{ssoToken}\n")
-    return session
 
 def main():
     args = parse_args()
@@ -379,21 +355,12 @@ def main():
     }
 
     if manual:
-        try:
-            with open('.session', 'r') as file:
-                lines = file.readlines()
-                if len(lines) > 1:
-                    ssoToken = lines[1].strip()
-                    erp.populate_session_with_login_tokens(session, ssoToken)
-                    if erp.session_alive(session):
-                        print("[+] Token Valid.")
-                        DEPT = input("Enter your branch code: ").upper()
-                    else:
-                        session = manual_login()
-                else:
-                    session = manual_login()
-        except FileNotFoundError:
-            session = manual_login()
+        ssoToken = erp.login(
+            headers,
+            session,
+            LOGGING=True,
+            SESSION_STORAGE_FILE=".session"
+        )
     else:
         if args.notp:
             _, ssoToken = erp.login(
