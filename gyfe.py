@@ -100,8 +100,8 @@ def find_all_unavailable_slots(unavailable_slots):
                 all_unavailable_slots.append(slot[0] + "2")
                 all_unavailable_slots.append(slot[0] + "3")
                 all_unavailable_slots.append(slot[0] + "4")
-            except Error as e:
-                print(e)
+            except:
+                pass
 
             # check if there are any lab slots overlapping with it
             for parent, slots in overlaps.items():
@@ -194,12 +194,12 @@ def save_depths(args, session, create_file=True):
             course["Slot"] = cells[5].text
             course["Room"] = cells[6].text
         except:
-            course["Course Code"] = "NIL"
-            course["Name"] = "NIL"
-            course["Faculty"] = "NIL"
-            course["LTP"] = "NIL"
-            course["Slot"] = "NIL"
-            course["Room"] = "NIL"
+            course["Course Code"] = None
+            course["Name"] = None
+            course["Faculty"] = None
+            course["LTP"] = None
+            course["Slot"] = None
+            course["Room"] = None
 
         # adding which minor the course helps you get
         course["Minor"] = "-"
