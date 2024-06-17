@@ -5,8 +5,12 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import Electives from './components/Electives';
 import MultiForm from './components/MultiForm';
+import About from './components/About';
+import Modal from './components/Modal';
 
 const App: React.FC = () => {
+
+  const [openModal, setOpenModal] = useState(false);
 
   const [isLoggedIn, setLogin] = useState<boolean>(() => {
     const savedLoginstate = sessionStorage.getItem('loginStatus');
@@ -29,6 +33,8 @@ const App: React.FC = () => {
         <Route path="/login" element={<MultiForm updateStatus={updateStatus}/>}/>
         <Route path="/" element={isLoggedIn ? <Electives/> : <Navigate to='/login'/>}/>
       </Routes>
+      <About setOpenModal = {setOpenModal}/>
+      {openModal && <Modal closeModal = {setOpenModal}/>}
       <Footer />
       </div>
     </Router>
