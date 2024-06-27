@@ -41,7 +41,10 @@ def find_core_courses(headers, session, args):
     # * Get code of core courses
     core_course_codes = []
     response = session.post(COURSES_URL, headers=headers)
-    core_courses = response.json()
+    try:
+        core_courses = response.json()
+    except:
+        core_courses = {}
     
     for course in core_courses:
         if course['subtype'] == 'Depth CORE':
@@ -232,7 +235,7 @@ def save_breadths(args, session, create_file=True):
     SUBJ_LIST_URL = (
         f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
     )
-
+    
     response = session.get(ERP_ELECTIVES_URL, headers=headers)
 
     soup = bs(response.text, "html.parser")
@@ -362,6 +365,7 @@ def main():
             SESSION_STORAGE_FILE=".session"
         )
     else:
+        DEPT = input("Enter you dept code: ")
         if args.notp:
             _, ssoToken = erp.login(
                 headers,
