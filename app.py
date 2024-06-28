@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, make_response, jsonify
+from flask import Flask, render_template, request, send_file, jsonify
 import requests
 import logging
-from iitkgp_erp_login import session_manager, erp
+from iitkgp_erp_login import session_manager
 import gyfe
 import io
 app = Flask(__name__)
@@ -54,7 +54,7 @@ def handle_auth() -> ErpResponse:
 @app.route("/secret-question", methods=["POST"])
 def get_secret_question():
     try:
-        data = request.form
+        data = request.get_json()
         roll_number = data.get("roll_number")
         if not roll_number:
             return ErpResponse(False, "Roll Number not provided", status_code=400).to_response()
@@ -78,8 +78,9 @@ def request_otp():
         else:
             jwt = auth_resp.get_json().get("jwt")
 
-        password = request.form.get("password")
-        secret_answer = request.form.get("secret_answer")
+        data = request.get_json()
+        password = data.get("password")
+        secret_answer = data.get("secret_answer")
         if not all([password, secret_answer]):
             return ErpResponse(False, "Missing password or secret answer", status_code=400).to_response()
 
@@ -98,9 +99,10 @@ def login():
         else:
             jwt = auth_resp.get_json().get("jwt")
 
-        password = request.form.get("password")
-        secret_answer = request.form.get("secret_answer")
-        otp = request.form.get("otp")
+        data = request.get_json()
+        password = data.get("password")
+        secret_answer = data.get("secret_answer")
+        otp = data.get("otp")
         if not all([secret_answer, password, otp]):
             return ErpResponse(False, "Missing password, secret answer or otp", status_code=400).to_response()
 
@@ -125,8 +127,8 @@ def logout():
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
 
-@app.route('/get_csv', methods=["POST"])
-def get_csv():
+@app.route('/fetch-csvfile', methods=["POST"])
+def fetch_csvfile():
     try:
         jwt = None
         auth_resp, status_code = handle_auth()
@@ -135,44 +137,61 @@ def get_csv():
         else:
             jwt = auth_resp.get_json().get("jwt")
         
-        class argument:
-            def __init__(self, session = None, semester= None, year= None, electives= None):
-                self.session = session
-                self.semester = semester
-                self.year = int(year)
-                self.notp = True
-                self.electives = electives
+        data = request.get_json()
+        SESSION = data.get('session')
+        SEMESTER = data.get('semester')
+        YEAR = int(data.get('year'))
+        ELECTIVES = data.get('electives')
+        DEPT = data.get('dept')
         
-        args = argument(request.form.get('session'), request.form.get('semester'), request.form.get('year'), request.form.get('electives'))
+        if not all([SESSION, SEMESTER, YEAR, ELECTIVES]):
+            return ErpResponse(False, "Missing args to create the csv file.", status_code=400).to_response()
         
-        if not all ([args.session, args.semester, args.year, args.notp, args.electives]):
-            return ErpResponse(False, "Missing args for csv file.", status_code=400).to_response()
-        
-        _, ssoToken = session_manager.get_erp_session(jwt=jwt)
+        headers = {
+            "timeout": "20",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
+        }
 
-        with open('new.txt', 'w') as file:
-            file.write("START\n")
-            file.write(ssoToken)
-            file.write("\nEND")
+        TIMETABLE_URL = f"https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={SESSION}&index={YEAR}&semester={SEMESTER}&dept={DEPT}"
+        ERP_ELECTIVES_URL = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"
 
-        session = requests.Session()
-        session.cookies.clear()
-        session.cookies.set('ssoToken', ssoToken, domain='erp.iitkgp.ac.in')
+        if ELECTIVES== "depth":
+            SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={SESSION}&for_semester={SEMESTER}&dept={DEPT}"
+            response_1 = session_manager.request(jwt=jwt, method='GET', url=TIMETABLE_URL, headers=headers)
+        
+        elif ELECTIVES == "breadth":
+            SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
+            response_1 = session_manager.request(jwt=jwt, method='GET', url=ERP_ELECTIVES_URL, headers=headers)
 
-        if args.electives == "breadth":
-            file = gyfe.save_breadths(args, session, False)
-        elif args.electives == "depth":
-            file = gyfe.save_depths(args, session, False)
+        else:
+            return ErpResponse(False, "Invalid elective type.", status_code=400).to_response()
         
-        buffer = io.StringIO()
-        buffer.write(file)
-        buffer.seek(0)
+        semester = 2 * YEAR - 1 if SEMESTER=="AUTUMN" else 2 * YEAR
+        COURSES_URL = f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={semester}"
+
+        response_2 = session_manager.request(jwt=jwt, method='GET', url=SUBJ_LIST_URL, headers=headers)
+        response_3 = session_manager.request(jwt=jwt, method='POST', url=COURSES_URL, headers=headers)
+
+        response = (response_1, response_2, response_3)
+
+        if not all(response):
+            return ErpResponse(False, "Failed to retrieve data..", status_code=500).to_response()
+
+        if ELECTIVES == "breadth":
+            file = gyfe.save_breadths(response, False)
+        elif ELECTIVES == "depth":
+            file = gyfe.save_depths(response, False)
         
-        response = make_response(buffer.getvalue())
-        response.headers['Content-Disposition'] = 'attachment; filename=data.csv'
-        response.headers['Content-Type'] = 'text/csv'
+        csv = io.BytesIO()
+        csv.write(file.encode('utf-8'))
+        csv.seek(0)
         
-        return response  
+        return send_file(
+            csv,
+            as_attachment=True,
+            mimetype='text/csv',
+            download_name=f"$my_{ELECTIVES}.csv"
+        )
 
 
     except Exception as e:
