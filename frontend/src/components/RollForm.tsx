@@ -1,8 +1,9 @@
-import React from 'react';
+import React, {useContext, useState} from 'react';
 import { useForm } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { BACKEND_URL } from './url';
+import { UserContext } from '../app-context/user-context';
 
 interface IFormInput {
   roll_number: string;
@@ -23,10 +24,16 @@ interface FormProps {
 const RollForm: React.FC<FormProps> = ({onSubmit}) => {
 
     const {register, handleSubmit, formState: {errors}} = useForm<IFormInput> ({ resolver: yupResolver(schema)});
+    const { user, updateState } = useContext(UserContext);
+    const [roll, setRoll] = useState(user?.roll || '');
+    const [password, setPasswd] = useState(user?.password || '');
+    const [securityQue, setSecurityQue] = useState(user?.securityQue || '');
 
     const handleFormSubmit = async (data: IFormInput) => {
-      console.log(data); // Or send data to an API endpoint
-      sessionStorage.setItem("passwd",data.passwd); // Hash the password, then store. Stored for use in next form
+      // sessionStorage.setItem("passwd",data.passwd); // Hash the password, then store. Stored for use in next form
+      setRoll(data.roll_number);
+      setPasswd(data.passwd);
+      
       try {
         const response = await fetch(`${BACKEND_URL}/secret-question`, {
           method: "POST",
@@ -40,13 +47,14 @@ const RollForm: React.FC<FormProps> = ({onSubmit}) => {
     
         const responseData = await response.json(); // returns jwt and secret question
         sessionStorage.setItem("jwt",responseData.jwt) //store jwt
-        sessionStorage.setItem("secret_question",responseData.secret_question) // use to display in next form
+        // sessionStorage.setItem("secret_question",responseData.secret_question) 
+        setSecurityQue(responseData.secret_question);
+        updateState({ user: { ...user, roll, password, securityQue} });
         onSubmit();
       } 
       catch (error) {
         console.error("Error fetching secret question:", error); // Here handle error. Can show that ErrorPage.tsx
       }
-      // sessionStorage.setItem("roll_number",data.roll_number);
       onSubmit();
     }
 

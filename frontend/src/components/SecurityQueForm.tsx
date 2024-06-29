@@ -1,9 +1,10 @@
-import React from 'react';
+import React, {useContext} from 'react';
 import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from './url';
+import { UserContext } from '../app-context/user-context';
 
 const schema = yup.object().shape({
   securityAnswer: yup.string().required('Security answer is required'),
@@ -22,15 +23,23 @@ interface SecurityQueFormProps {
 const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
   
     const {register, handleSubmit, getValues, formState: {errors},} = useForm<IFormInput>({resolver: yupResolver(schema)});
+    const { user, updateState } = useContext(UserContext);
 
     const getOTP = async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-      console.log("this called")
       event.preventDefault(); // To Prevent reload
-      const security_answer = getValues('securityAnswer'); 
-      const passwd = sessionStorage.getItem("passwd"); // hadnle the hashed password
+      const securityAns = getValues('securityAnswer'); 
+      // const passwd = sessionStorage.getItem("passwd"); // hadnle the hashed password
+      const passwd = user?.password;
+      updateState({ user: { ...user, securityAns} });
+
+      // Test if global state works
+      console.log(user?.roll)
+      console.log(user?.password)
+      console.log(user?.securityQue)
+      console.log(user?.securityAns)
 
       const formData = {
-        secret_answer: security_answer,
+        secret_answer: securityAns,
         password: passwd,
       }
 
@@ -57,14 +66,16 @@ const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
     
     const onSubmit = async () => {
       const otp1 = getValues('otp'); 
-      const otp_data = {
+      const login_data = {
+        passw: user?.password,
+        secretAns: user?.securityAns,
         otp: otp1,
       }
       try {
         const response = await fetch(`${BACKEND_URL}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(otp_data),  // In api, this endpoint requests password and secret answer again. But I have given only otp. Can be changed later
+          body: JSON.stringify(login_data),  
         });
     
         if (!response.ok) {
@@ -86,7 +97,7 @@ const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
     return (
         <form className='login-form' onSubmit={handleSubmit(onSubmit)}>
             <div className='question'>
-              <label>{sessionStorage.getItem("secret_question")}: </label>  
+              <label>{user?.securityQue}: </label>  
               <input type="text" placeholder='Enter your answer' className='input-box box' {...register('securityAnswer')}></input>
               {errors.securityAnswer && (<p style={{ color: 'red' }}>{errors.securityAnswer.message}</p>)}
             </div>
