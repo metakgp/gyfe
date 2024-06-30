@@ -70,8 +70,8 @@ const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
     const onSubmit = async () => {
       const otp1 = getValues('otp'); 
       const login_data = {
-        passw: user?.password,
-        secretAns: user?.securityAns,
+        password: user?.password,
+        secret_answer: user?.securityAns,
         otp: otp1,
       }
       try {
