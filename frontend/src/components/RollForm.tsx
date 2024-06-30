@@ -4,6 +4,7 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { BACKEND_URL } from './url';
 import { UserContext } from '../app-context/user-context';
+import { toast, Toaster } from 'react-hot-toast';
 
 interface IFormInput {
   roll_number: string;
@@ -47,6 +48,7 @@ const RollForm: React.FC<FormProps> = ({onSubmit}) => {
     
         const responseData = await response.json(); // returns jwt and secret question
         sessionStorage.setItem("jwt",responseData.jwt) //store jwt
+        toast.success("Fetched security question!");
         // sessionStorage.setItem("secret_question",responseData.secret_question) 
         setSecurityQue(responseData.secret_question);
         updateState({ user: { ...user, roll, password, securityQue} });
@@ -54,12 +56,14 @@ const RollForm: React.FC<FormProps> = ({onSubmit}) => {
       } 
       catch (error) {
         console.error("Error fetching secret question:", error); // Here handle error. Can show that ErrorPage.tsx
+        toast.error("Error fetching secret question!");
       }
       onSubmit();
     }
 
     return (
         <form onSubmit={handleSubmit(handleFormSubmit)}>
+          <Toaster position="bottom-center" />
             <div className='roll'>
               <label>Roll number: </label>
               <input type="text" placeholder='Roll number for ERP, e.g. 22AE10024' className='input-box' {...register("roll_number")}/>

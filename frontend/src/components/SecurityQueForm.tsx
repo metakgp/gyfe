@@ -5,6 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from './url';
 import { UserContext } from '../app-context/user-context';
+import { toast, Toaster } from 'react-hot-toast';
 
 const schema = yup.object().shape({
   securityAnswer: yup.string().required('Security answer is required'),
@@ -55,10 +56,12 @@ const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
         }
 
         const responseData = await response.json();
-        console.log(responseData.message); // Or can show this message using react-hot-toast
+        console.log(responseData.message); 
+        toast.success("OTP sent successfully to ERP registered email id!");
     
       } catch (error) {
-        console.error("Error fetching OTP:", error); // To show error page
+        console.error("Error fetching OTP:", error); 
+        toast.error("Error fetching OTP!");
       }
     }
     
@@ -83,19 +86,23 @@ const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
         }
 
         const responseData = await response.json();
-        console.log(responseData.message); // Or can show this message using react-hot-toast
+        console.log(responseData.message); 
+        toast.success("Successfully logged in to ERP!");
 
         updateStatus(); 
         navigate('/');
     
       } 
       catch (error) {
-        console.error("Error fetching OTP:", error); // To show error page
+        console.error("User not logged in", error);
+        toast.error("Error logging to ERP! Please try again and ensure to enter correct credentials");
+        navigate('/login'); // redirecting back to /login
       }
     }
 
     return (
         <form className='login-form' onSubmit={handleSubmit(onSubmit)}>
+           <Toaster position="bottom-center" />
             <div className='question'>
               <label>{user?.securityQue}: </label>  
               <input type="text" placeholder='Enter your answer' className='input-box box' {...register('securityAnswer')}></input>
