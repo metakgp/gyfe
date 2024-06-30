@@ -1,6 +1,5 @@
 # scrape depth electives
 import requests
-import erpcreds
 import iitkgp_erp_login.erp as erp
 from bs4 import BeautifulSoup as bs
 import pandas as pd
@@ -9,8 +8,14 @@ from tabulate import tabulate
 import re
 import json
 
-DEPT = erpcreds.ROLL_NUMBER[2:4]
+DEPT : str = None
 
+try:
+    import erpcreds
+    DEPT = erpcreds.ROLL_NUMBER[2:4]
+    manual = False
+except:
+    manual  = True
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Get depth electives from ERP")
@@ -28,15 +33,14 @@ def parse_args():
     return parser.parse_args()
 
 
-def find_core_courses(headers, session, args):
-
-    semester = 2 * args.year - 1 if args.semester == "AUTUMN" else 2 * args.year
-    COURSES_URL = f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={semester}"
+def find_core_courses(response):
 
     # * Get code of core courses
     core_course_codes = []
-    response = session.post(COURSES_URL, headers=headers)
-    core_courses = response.json()
+    try:
+        core_courses = response.json()
+    except:
+        core_courses = {}
     
     for course in core_courses:
         if course['subtype'] == 'Depth CORE':
@@ -68,9 +72,12 @@ def find_all_unavailable_slots(unavailable_slots):
 
         # else, if there is F3 slot for example, add F2, F4 to unavailable slots, and vice versa similarly for whatever letters are there
         else:
-            all_unavailable_slots.append(slot[0] + "2")
-            all_unavailable_slots.append(slot[0] + "3")
-            all_unavailable_slots.append(slot[0] + "4")
+            try:
+                all_unavailable_slots.append(slot[0] + "2")
+                all_unavailable_slots.append(slot[0] + "3")
+                all_unavailable_slots.append(slot[0] + "4")
+            except:
+                pass
 
             # check if there are any lab slots overlapping with it
             for parent, slots in overlaps.items():
@@ -83,7 +90,7 @@ def find_all_unavailable_slots(unavailable_slots):
     return all_unavailable_slots
 
 
-def save_depths(args):
+def save_depths(response :tuple, create_file:bool =True):
     """
     Workflow:
             - Check DeptWise timetable and scrape subjects
@@ -92,38 +99,7 @@ def save_depths(args):
             - Go to Deptwise subject list to additionally scrape prof name and slot
     """
 
-    headers = {
-        "timeout": "20",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
-    }
-
-    session = requests.Session()
-
-    if args.notp:
-        _, ssoToken = erp.login(
-            headers,
-            session,
-            ERPCREDS=erpcreds,
-            LOGGING=True,
-            SESSION_STORAGE_FILE=".session",
-        )
-    else:
-        _, ssoToken = erp.login(
-            headers,
-            session,
-            ERPCREDS=erpcreds,
-            OTP_CHECK_INTERVAL=2,
-            LOGGING=True,
-            SESSION_STORAGE_FILE=".session",
-        )
-
-    TIMETABLE_URL = f"https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={args.session}&index={args.year}&semester={args.semester}&dept={DEPT}"
-    SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={args.session}&for_semester={args.semester}&dept={DEPT}"
-
-
-    # *First get list of depths
-    response = session.get(TIMETABLE_URL, headers=headers)
-    soup = bs(response.text, "html.parser")
+    soup = bs(response[0].text, "html.parser")
 
     with open("minors.json", "r") as f:
         minors = json.load(f)
@@ -141,7 +117,10 @@ def save_depths(args):
         for cell in cells:
             a_tag = cell.find("a")
             # matches = re.findall(pattern, str(a_tag))
-            matches = a_tag.find_all(string=True)
+            try:
+                matches = a_tag.find_all(string=True)
+            except:
+                matches = []
             if len(matches) > 1:
                 course_code = matches[0]
                 depth_course_codes.append(course_code)
@@ -151,31 +130,43 @@ def save_depths(args):
     df_depths.drop_duplicates(subset=["Course Code"], inplace=True)
 
     # * Get code of core courses
-    core_course_codes = find_core_courses(headers, session, args)
+    core_course_codes = find_core_courses(response[2])
 
     #* Remove core courses from depths
     df_depths = df_depths[~df_depths["Course Code"].isin(core_course_codes)]
 
     # * Now get prof names and slots
-    response = session.get(SUBJ_LIST_URL, headers=headers)
-    soup = bs(response.text, "html.parser")
+    soup = bs(response[1].text, "html.parser")
 
     #* Extract course information from the table rows
     courses = []
     parentTable = soup.find("table", {"id": "disptab"})
     rows = parentTable.find_all("tr")
 
+    try:
+        cc = course_code.strip()
+    except:
+        cc = None
+    
     for row in rows[1:]:
         if "bgcolor" in row.attrs:
             continue
         cells = row.find_all("td")
         course = {}
-        course["Course Code"] = cells[0].text
-        course["Name"] = cells[1].text
-        course["Faculty"] = cells[2].text
-        course["LTP"] = cells[3].text
-        course["Slot"] = cells[5].text
-        course["Room"] = cells[6].text
+        try: 
+            course["Course Code"] = cells[0].text
+            course["Name"] = cells[1].text
+            course["Faculty"] = cells[2].text
+            course["LTP"] = cells[3].text
+            course["Slot"] = cells[5].text
+            course["Room"] = cells[6].text
+        except:
+            course["Course Code"] = None
+            course["Name"] = None
+            course["Faculty"] = None
+            course["LTP"] = None
+            course["Slot"] = None
+            course["Room"] = None
 
         # adding which minor the course helps you get
         course["Minor"] = "-"
@@ -184,7 +175,7 @@ def save_depths(args):
         for lst in code_list:
             pos = code_list.index(lst)
             for ele in lst:
-                if course_code.strip() == ele:
+                if cc == ele:
                     course["Minor"] = course_list[pos]
 
         courses.append(course)
@@ -207,52 +198,22 @@ def save_depths(args):
     df_all.set_index("Course Code", inplace=True)
 
     # save available electives
-    with open("available_depths.txt", "w") as f:
-        f.write(tabulate(df_all, headers="keys", tablefmt="fancy_grid"))
-
-    print("Available depths saved to available_depths.txt")
-
-
-def save_breadths(args):
+    if create_file:
+        with open("available_depths.txt", "w") as f:
+            f.write(tabulate(df_all, headers="keys", tablefmt="fancy_grid"))
+        print("Available depths saved to available_depths.txt")
+    else:
+        return df_all.to_csv(index=False)
+    
+    
+def save_breadths(response :tuple, create_file:bool =True):
     """
     Workflow:
             - Check breadth list to get all breadth electives
             - Similar to save_depths, find unavailable slots and filter breadth electives
     """
 
-    headers = {
-        "timeout": "20",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
-    }
-
-    session = requests.Session()
-
-    if args.notp:
-        _, ssoToken = erp.login(
-            headers,
-            session,
-            ERPCREDS=erpcreds,
-            LOGGING=True,
-            SESSION_STORAGE_FILE=".session",
-        )
-    else:
-        _, ssoToken = erp.login(
-            headers,
-            session,
-            ERPCREDS=erpcreds,
-            OTP_CHECK_INTERVAL=2,
-            LOGGING=True,
-            SESSION_STORAGE_FILE=".session",
-        )
-
-    ERP_ELECTIVES_URL = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"
-    SUBJ_LIST_URL = (
-        f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
-    )
-
-    response = session.get(ERP_ELECTIVES_URL, headers=headers)
-
-    soup = bs(response.text, "html.parser")
+    soup = bs(response[0].text, "html.parser")
 
     with open("minors.json", "r") as f:
         minors = json.load(f)
@@ -318,11 +279,10 @@ def save_breadths(args):
     # for some reason, some empty slots are not being replaced
     df["Slot"].replace("", "Not alloted yet", inplace=True)
 
-    core_course_codes = find_core_courses(headers, session, args)
+    core_course_codes = find_core_courses(response[2])
 
     # * find unavailable slots
-    response = session.get(SUBJ_LIST_URL, headers=headers)
-    soup = bs(response.text, "html.parser")
+    soup = bs(response[1].text, "html.parser")
 
     # Extract course information from the table rows
     courses = []
@@ -335,7 +295,10 @@ def save_breadths(args):
         cells = row.find_all("td")
         course = {}
         course["Course Code"] = cells[0].text
-        course["Slot"] = cells[5].text
+        try:
+            course["Slot"] = cells[5].text
+        except:
+            course["Slot"] = None
         courses.append(course)
 
     df_all = pd.DataFrame(data=courses)
@@ -351,18 +314,96 @@ def save_breadths(args):
     df = df[~df["Slot"].str.contains("|".join(all_unavailable_slots), na=False)]
     df.set_index("Course Code", inplace=True)
     # save available electives
-    with open("available_breadths.txt", "w") as f:
-        f.write(tabulate(df, headers="keys", tablefmt="fancy_grid"))
+    if create_file:
+        with open("available_breadths.txt", "w") as f:
+            f.write(tabulate(df, headers="keys", tablefmt="fancy_grid"))
+        print("Available electives saved to available_breadths.txt")
+    else:
+        return df.to_csv(index=False)
 
-    print("Available electives saved to available_breadths.txt")
+def fetch_response(args, session):
+    headers = {
+        "timeout": "20",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
+    }
+
+    TIMETABLE_URL = f"https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={args.session}&index={args.year}&semester={args.semester}&dept={DEPT}"
+    ERP_ELECTIVES_URL = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"
+    
+    if args.electives == "depth":
+        SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={args.session}&for_semester={args.semester}&dept={DEPT}"
+        response_1 = session.get(TIMETABLE_URL, headers=headers)
+    
+    elif args.electives == "breadth":
+        SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
+        response_1 = session.get(ERP_ELECTIVES_URL, headers=headers)
+    
+    semester = 2 * args.year - 1 if args.semester== "AUTUMN" else 2 * args.year
+    COURSES_URL = f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={semester}"
+
+    response_2 = session.get(SUBJ_LIST_URL, headers=headers)
+    response_3 = session.post(COURSES_URL, headers=headers)
+
+    return (response_1, response_2, response_3)
 
 
 def main():
     args = parse_args()
+
+    session = requests.Session()
+    headers = {
+        "timeout": "20",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
+    }
+
+    if manual:
+        ssoToken = erp.login(
+            headers,
+            session,
+            LOGGING=True,
+            SESSION_STORAGE_FILE=".session"
+        )
+    else:
+        DEPT = input("Enter you dept code: ")
+        if args.notp:
+            _, ssoToken = erp.login(
+                headers,
+                session,
+                ERPCREDS=erpcreds,
+                LOGGING=True,
+                SESSION_STORAGE_FILE=".session",
+            )
+        else:
+            _, ssoToken = erp.login(
+                headers,
+                session,
+                ERPCREDS=erpcreds,
+                OTP_CHECK_INTERVAL=2,
+                LOGGING=True,
+                SESSION_STORAGE_FILE=".session",
+            )
+    
     if args.electives == "breadth":
-        save_breadths(args)
+
+        response = fetch_response(args, session)
+        save_breadths(response)
+        depth = input("Do you want to get depth also? (Y/n) [Default: no]: ").lower()
+
+        if depth == 'y':
+            args.electives = "depth"
+            response = fetch_response(args, session)
+            save_depths(response)
+
     elif args.electives == "depth":
-        save_depths(args)
+
+        response = fetch_response(args, session)
+        save_depths(response)
+        breadth = input("Do you want to get breadth also? (Y/n) [Default: no]: ").lower()
+
+        if breadth == 'y':
+            args.electives = "breadth"
+            response = fetch_response(args, session)
+            save_breadths(response)
     else:
         print("Invalid electives type. Choose from 'breadth' or 'depth'")
 
