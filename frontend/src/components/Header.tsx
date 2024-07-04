@@ -1,5 +1,5 @@
 import React from 'react';
-import metakgpLogo from '../assets/header-logo.png';
+import metakgpLogo from '../assets/metakgp-logo-white.png';
 
 const Header: React.FC = () => {
     return(

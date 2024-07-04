@@ -48,13 +48,22 @@ const Electives: React.FC = () => {
     };
 
     return (
-        <div>
+        <div id="electives-page">
             <Toaster position="bottom-center" />
-            <div><h2>Choose depth/breadth electives</h2></div>
+            <div className='electives-title'><h2>Download Electives</h2></div>
             <div className='electives'>
-                <div><button className='download breadth' onClick={getBreadth}>Download breadth electives</button></div>
-                <div><button className='download depth' onClick={getDepth}>Download depth electives</button></div>
+                <div className='breadth-box'>
+                    <div><p className='breadth-title'>Breadth</p></div>
+                    <div><p className='breadth-about'>Click download to save the excel file for available breadth electives.</p></div>
+                    <div><button className='download breadth' onClick={getBreadth}>Download</button></div>
+                </div>
+                <div className='depth-box'>
+                    <div><p className='depth-title'>Depth</p></div>
+                    <div><p className='depth-about'>Click download to save the excel file for available depth electives.</p></div>
+                    <div><button className='download depth' onClick={getDepth}>Download</button></div>
+                </div>
             </div>
+            {/* <div className='logout'><button>Logout</button></div> */}
         </div>
     );
 }
