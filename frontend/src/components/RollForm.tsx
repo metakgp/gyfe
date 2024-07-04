@@ -62,11 +62,12 @@ const RollForm: React.FC<FormProps> = ({onSubmit}) => {
     }
 
     return (
+      <div className='roll-form'>
         <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Toaster position="bottom-center" />
             <div className='roll'>
               <label>Roll number: </label>
-              <input type="text" placeholder='Roll number for ERP, e.g. 22AE10024' className='input-box' {...register("roll_number")}/>
+              <input type="text" placeholder='Roll number for ERP' className='input-box' {...register("roll_number")}/>
               {errors.roll_number && <p style={{color: "red"}}>{errors.roll_number.message}</p>}
             </div>
             <div className='passwd'>
@@ -76,6 +77,7 @@ const RollForm: React.FC<FormProps> = ({onSubmit}) => {
             </div>
             <div className='que-btn'><button type="submit" className='btn'>Get security question</button></div>
         </form>
+      </div>
     );
 }
 
