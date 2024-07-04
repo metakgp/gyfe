@@ -147,16 +147,17 @@ def elective(ELECTIVE):
             jwt = auth_resp.get_json().get("jwt")
         
         ROLL_NUMBER = jwt_gen.decode(jwt, jwt_secret_key, algorithms=['HS256'])["roll_number"]
-
-        YEAR = int(ROLL_NUMBER[1])
         DEPT = ROLL_NUMBER[2:4]
         current_month = datetime.now().month
-        if current_month in [12, 1, 2, 3, 4, 5]:
+        current_year = datetime.now().year
+        if current_month in [1, 2, 3, 4, 5, 6]:
             SEMESTER = "SPRING"
-            SESSION = str(datetime.now().year - 1) +'-'+ str(datetime.now().year)
-        elif current_month in [6, 7, 8, 9, 10, 11]:
+            SESSION = str(current_year - 1) +'-'+ str(current_year)
+            YEAR = current_year - int("20"+ROLL_NUMBER[:2])
+        elif current_month in [7, 8, 9, 10, 11, 12]:
             SEMESTER = "AUTUMN"
-            SESSION = str(datetime.now().year) +'-'+ str(datetime.now().year + 1)
+            SESSION = str(current_year) +'-'+ str(current_year + 1)
+            YEAR = current_year - int("20"+ROLL_NUMBER[:2]) + 1
         
         """
         save_depth and save_breadth needs 2 responses, that is PRIMARY_RESP and SUBJ_LIST_RESP,
@@ -170,10 +171,10 @@ def elective(ELECTIVE):
 
         if ELECTIVE== "depth":
             SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={SESSION}&for_semester={SEMESTER}&dept={DEPT}"
-            PRIMARY_RESP = session_manager.request(jwt=jwt, method='GET', url=TIMETABLE_URL, headers=headers)
+            TIMETABLE_RESP = session_manager.request(jwt=jwt, method='GET', url=TIMETABLE_URL, headers=headers)
         elif ELECTIVE == "breadth":
             SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
-            PRIMARY_RESP = session_manager.request(jwt=jwt, method='GET', url=ERP_ELECTIVES_URL, headers=headers)
+            ERP_ELECTIVES_RESP = session_manager.request(jwt=jwt, method='GET', url=ERP_ELECTIVES_URL, headers=headers)
         else:
             return ErpResponse(False, "Invalid elective type.", status_code=404).to_response()
         
@@ -182,8 +183,11 @@ def elective(ELECTIVE):
 
         SUBJ_LIST_RESP = session_manager.request(jwt=jwt, method='GET', url=SUBJ_LIST_URL, headers=headers)
         COURSES_RESP = session_manager.request(jwt=jwt, method='POST', url=COURSES_URL, headers=headers)
-
-        response = (PRIMARY_RESP, SUBJ_LIST_RESP, COURSES_RESP) 
+        
+        if ELECTIVE == "depth":
+            response = (TIMETABLE_RESP, SUBJ_LIST_RESP, COURSES_RESP) 
+        elif ELECTIVE == "breadth":
+            response = (ERP_ELECTIVES_RESP, SUBJ_LIST_RESP, COURSES_RESP) 
 
         if not all(response):
             return ErpResponse(False, "Failed to retrieve data..", status_code=500).to_response()
