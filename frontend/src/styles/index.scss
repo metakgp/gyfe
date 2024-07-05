@@ -124,6 +124,7 @@ h1 {
   font-size: 1.3em;
   font-weight: 600;
   position: relative;
+  cursor: pointer;
   &:hover {
     background-color: $green-button-hover
   }
@@ -138,6 +139,7 @@ h1 {
   top: 3rem;
   button{
     @include about-btn();
+    cursor: pointer;
     &:hover{
       background-color: $purple-button-hover;
     }
@@ -165,6 +167,7 @@ label {
 
 .otp{
   @include custom-btn;
+  cursor: pointer;
   background-color: green;
   font-weight: 600;
   &:hover {
@@ -178,6 +181,7 @@ label {
 
 .login-btn {
   @include custom-btn;
+  cursor: pointer;
   background-color: $purple;
   font-weight: 600;
   &:hover {
@@ -198,6 +202,7 @@ label {
   border: 1px solid $metakgp-whitesmoke;
   background-color: green;
   position: relative;
+  cursor: pointer;
   // bottom: 10px;
   &:hover {
     background-color: $green-button-hover;
@@ -226,7 +231,7 @@ label {
     width: 35vw;
     border-radius: 10px;
     padding: 30px;
-    background-color: rgba(12, 11, 12, 0.308);
+    background-color: rgba(29, 27, 29, 0.582);
     .breadth-title, .depth-title{
       font-size: 1.5rem;
       font-weight: 600;
@@ -268,6 +273,7 @@ img{
   top: 1.1rem;
   button{
     border: 1px solid $metakgp-whitesmoke;
+    cursor: pointer;
   }
 }
 
@@ -376,18 +382,11 @@ img{
 
   .electives{
     @include flexColumn();
+    align-items: center;
     row-gap: 2rem;
     .breadth-box, .depth-box{
-      @include flexColumn();
-      justify-content: space-between;
-      border-radius: 10px;
       width: 60vw;
       padding: 20px;
-      background-color: rgba(12, 11, 12, 0.308);
-      .breadth-title, .depth-title{
-        font-size: 1.5rem;
-        font-weight: 600;
-      }
     }
   }
 }
@@ -435,18 +434,12 @@ img{
 
   .electives{
     @include flexColumn();
+    align-items: center;
     row-gap: 2rem;
     .breadth-box, .depth-box{
       @include flexColumn();
-      justify-content: space-between;
       width: 60vw;
       border-radius: 10px;
-      padding: 30px;
-      background-color: rgba(12, 11, 12, 0.308);
-      .breadth-title, .depth-title{
-        font-size: 1.5rem;
-        font-weight: 600;
-      }
     }
   }
 }
