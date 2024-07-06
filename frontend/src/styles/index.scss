@@ -57,23 +57,10 @@ form {
 .roll,
 .passwd,
 .question,
-.login-form,
-.header {
+.header, .otp-box {
   @include flexColumn;
   align-items: center;
 }
-
-.login-form {
-  row-gap: 2.2em;
-}
-
-// .roll-form{
-//   position: absolute;
-//   width: 40%;
-//   left: 50%;
-//   transform: translateX(-50%);
-//   top: 35vh;
-// }
 
 :root {
   line-height: 2.0;
@@ -260,15 +247,11 @@ label {
   }
 }
 
-.box {
-  width: 25rem;
-}
-
 img{
   height: 95px;
 }
 
-.que-btn{
+.que-btn, .otp, .login-btn{
   position: relative;
   top: 1.1rem;
   button{

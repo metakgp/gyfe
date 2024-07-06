@@ -1,4 +1,4 @@
-import React, {useContext} from 'react';
+import React, {useContext, useState} from 'react';
 import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -8,7 +8,7 @@ import { UserContext } from '../app-context/user-context';
 import { toast, Toaster } from 'react-hot-toast';
 
 const schema = yup.object().shape({
-  securityAnswer: yup.string().required('Security answer is required'),
+  securityAnswer: yup.string().required('Security answer is required!'),
   otp: yup.string().required('OTP is required').matches(/^\d{6}$/, 'Please enter valid 6-digit OTP!'),
 });
 
@@ -17,17 +17,21 @@ interface IFormInput {
   otp: string;
 }
 
-interface SecurityQueFormProps {
-  updateStatus: () => void;
-}
-
-const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
+const SecurityQueForm: React.FC = () => {
   
-    const {register, handleSubmit, getValues, formState: {errors},} = useForm<IFormInput>({resolver: yupResolver(schema)});
+    const {register, handleSubmit, getValues, trigger, formState: {errors},} = useForm<IFormInput>({resolver: yupResolver(schema)});
     const { user, updateState } = useContext(UserContext);
+    const [isAnswered, setIsAnswered] = useState(false);
 
     const getOTP = async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
       event.preventDefault(); // To Prevent reload
+      
+      const isValid = await trigger('securityAnswer');
+
+      if (!isValid) {
+       return; // If validation fails, do not proceed
+      }
+
       const securityAns = getValues('securityAnswer'); 
       // const passwd = sessionStorage.getItem("passwd"); // hadnle the hashed password
       const passwd = user?.password;
@@ -57,6 +61,7 @@ const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
 
         const responseData = await response.json();
         console.log(responseData.message); 
+        setIsAnswered(true);
         toast.success("OTP sent successfully to ERP registered email id!");
     
       } catch (error) {
@@ -87,9 +92,12 @@ const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
 
         const responseData = await response.json();
         console.log(responseData.message); 
+       
+        updateState({ user: { ...user, isLoggedIn: true } }); // set global state isLoggedIn to true
+        sessionStorage.setItem("loginStatus", JSON.stringify(user?.isLoggedIn));
         toast.success("Successfully logged in to ERP!");
 
-        updateStatus(); 
+        // updateStatus(); 
         navigate('/');
     
       } 
@@ -101,6 +109,7 @@ const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
     }
 
     return (
+        <div className='security-form'>
         <form className='login-form' onSubmit={handleSubmit(onSubmit)}>
            <Toaster position="bottom-center" />
             <div className='question'>
@@ -108,13 +117,14 @@ const SecurityQueForm: React.FC<SecurityQueFormProps> = ({updateStatus}) => {
               <input type="text" placeholder='Enter your answer' className='input-box box' {...register('securityAnswer')}></input>
               {errors.securityAnswer && (<p style={{ color: 'red' }}>{errors.securityAnswer.message}</p>)}
             </div>
-            <div><button className='otp' onClick={getOTP}>Send OTP</button></div>
-            <div>
-                <input type='text' placeholder='Enter OTP sent to email' className='input-box box' {...register('otp')}></input>
+            <div className='otp-box'>
+                <label>Enter OTP</label>  
+                <input type='text' placeholder='Enter OTP sent to email' className='input-box box' {...register('otp')} disabled={!isAnswered} style={isAnswered? {cursor:'text'} : {cursor: 'not-allowed'}}></input>
                 {errors.otp && <p style={{ color: 'red' }}>{errors.otp.message}</p>}
             </div>
-            <div><button className='login-btn' type='submit'>Login</button></div>
+            {isAnswered ? <div><button className='login-btn' type='submit'>Login</button></div> : <div><button className='otp' onClick={getOTP}>Send OTP</button></div>}
         </form>
+        </div>
     );
 }
 

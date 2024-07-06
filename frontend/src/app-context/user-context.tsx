@@ -5,6 +5,7 @@ export interface UserObject {
   password?: string
   securityQue?: string
   securityAns?: string
+  isLoggedIn?: boolean
 }
 
 // export const User: UserObject = {
@@ -15,7 +16,9 @@ export interface UserObject {
 // }
 
 const defaultState: AppState = {
-    user: {},
+    user: {
+      isLoggedIn: false,
+    },
     updateState: () => {},
   }
 

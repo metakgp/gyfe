@@ -2,11 +2,8 @@ import React, { useState } from 'react';
 import RollForm from './RollForm';
 import SecurityQueForm from './SecurityQueForm';
 
-interface MultiFormProps {
-    updateStatus: () => void;
-}
 
-const MultiForm: React.FC<MultiFormProps> = ({updateStatus}) => {
+const MultiForm: React.FC = () => {
     const [showSecurityQueForm, setSecurityQueForm] = useState(false);
 
     const handleGetSecurityQuestion = () => {
@@ -16,7 +13,7 @@ const MultiForm: React.FC<MultiFormProps> = ({updateStatus}) => {
     return (
         <div>
           {!showSecurityQueForm && <RollForm onSubmit={handleGetSecurityQuestion} />}
-          {showSecurityQueForm && <SecurityQueForm updateStatus = {updateStatus}/>}
+          {showSecurityQueForm && <SecurityQueForm/>}
        </div>
     );
 }
