@@ -11,12 +11,11 @@ from datetime import datetime
 app = Flask(__name__)
 
 load_dotenv()
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+jwt_secret_key = os.getenv('JWT_SECRET_KEY')
 
-if not app.config['JWT_SECRET_KEY']:
+if not jwt_secret_key:
     raise ValueError("No JWT_SECRET_KEY set for Flask application")
 
-jwt_secret_key = app.config['JWT_SECRET_KEY']
 headers = {
         "timeout": "20",
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
@@ -136,7 +135,38 @@ def logout():
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
 
-@app.route('/elective/<ELECTIVE>', methods=["GET"])
+def fetch_response(SESSION :str, SEMESTER :str, YEAR :int, ELECTIVE :str, DEPT :str, jwt :str) -> tuple[requests.Response, ...]:
+    """
+    save_depth and save_breadth needs 2 responses, that is PRIMARY_RESP and SUBJ_LIST_RESP,
+    both function calls find_core_courses inside them, which requires COURSES_RESP to run.
+
+    fetching all the responses and making a tuple named "response" and passing to gyfe.save_depths() or gyfe.save_breadths().
+    """
+
+    TIMETABLE_URL = f"https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={SESSION}&index={YEAR}&semester={SEMESTER}&dept={DEPT}"
+    ERP_ELECTIVES_URL = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"
+
+    if ELECTIVE== "depth":
+        SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={SESSION}&for_semester={SEMESTER}&dept={DEPT}"
+        TIMETABLE_RESP = session_manager.request(jwt=jwt, method='GET', url=TIMETABLE_URL, headers=headers)
+    elif ELECTIVE == "breadth":
+        SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
+        ERP_ELECTIVES_RESP = session_manager.request(jwt=jwt, method='GET', url=ERP_ELECTIVES_URL, headers=headers)
+    else:
+        return ErpResponse(False, "Invalid elective type.", status_code=404).to_response()
+    
+    semester = 2 * YEAR - 1 if SEMESTER=="AUTUMN" else 2 * YEAR
+    COURSES_URL = f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={semester}"
+
+    SUBJ_LIST_RESP = session_manager.request(jwt=jwt, method='GET', url=SUBJ_LIST_URL, headers=headers)
+    COURSES_RESP = session_manager.request(jwt=jwt, method='POST', url=COURSES_URL, headers=headers)
+
+    if ELECTIVE == "depth":
+        return (TIMETABLE_RESP, SUBJ_LIST_RESP, COURSES_RESP) 
+    elif ELECTIVE == "breadth":
+        return (ERP_ELECTIVES_RESP, SUBJ_LIST_RESP, COURSES_RESP) 
+
+@app.route('/elective/<ELECTIVE>', methods=["POST"])
 def elective(ELECTIVE):
     try:
         jwt = None
@@ -153,49 +183,26 @@ def elective(ELECTIVE):
         if current_month in [1, 2, 3, 4, 5, 6]:
             SEMESTER = "SPRING"
             SESSION = str(current_year - 1) +'-'+ str(current_year)
-            YEAR = current_year - int("20"+ROLL_NUMBER[:2])
+            YEAR = current_year - int("20"+ROLL_NUMBER[:2]) - 1
         elif current_month in [7, 8, 9, 10, 11, 12]:
             SEMESTER = "AUTUMN"
             SESSION = str(current_year) +'-'+ str(current_year + 1)
-            YEAR = current_year - int("20"+ROLL_NUMBER[:2]) + 1
+            YEAR = current_year - int("20"+ROLL_NUMBER[:2])
         
-        """
-        save_depth and save_breadth needs 2 responses, that is PRIMARY_RESP and SUBJ_LIST_RESP,
-        both function calls find_core_courses inside them, which requires COURSES_RESP to run.
+        data = request.get_json()
+        SEMESTER = data.get("semester") if data.get("semester") else SEMESTER
+        SESSION = data.get("session") if data.get("session") else SESSION
+        YEAR = int(data.get("year"))-1 if data.get("year") else YEAR
 
-        fetching all the responses and making a tuple named "response" and passing to gyfe.save_depths() or gyfe.save_breadths().
-        """
-
-        TIMETABLE_URL = f"https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={SESSION}&index={YEAR}&semester={SEMESTER}&dept={DEPT}"
-        ERP_ELECTIVES_URL = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"
-
-        if ELECTIVE== "depth":
-            SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={SESSION}&for_semester={SEMESTER}&dept={DEPT}"
-            TIMETABLE_RESP = session_manager.request(jwt=jwt, method='GET', url=TIMETABLE_URL, headers=headers)
-        elif ELECTIVE == "breadth":
-            SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
-            ERP_ELECTIVES_RESP = session_manager.request(jwt=jwt, method='GET', url=ERP_ELECTIVES_URL, headers=headers)
-        else:
-            return ErpResponse(False, "Invalid elective type.", status_code=404).to_response()
-        
-        semester = 2 * YEAR - 1 if SEMESTER=="AUTUMN" else 2 * YEAR
-        COURSES_URL = f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={semester}"
-
-        SUBJ_LIST_RESP = session_manager.request(jwt=jwt, method='GET', url=SUBJ_LIST_URL, headers=headers)
-        COURSES_RESP = session_manager.request(jwt=jwt, method='POST', url=COURSES_URL, headers=headers)
-        
-        if ELECTIVE == "depth":
-            response = (TIMETABLE_RESP, SUBJ_LIST_RESP, COURSES_RESP) 
-        elif ELECTIVE == "breadth":
-            response = (ERP_ELECTIVES_RESP, SUBJ_LIST_RESP, COURSES_RESP) 
+        responses = fetch_response(SESSION, SEMESTER, YEAR, ELECTIVE, DEPT, jwt)
 
         if not all(response):
             return ErpResponse(False, "Failed to retrieve data..", status_code=500).to_response()
 
         if ELECTIVE == "breadth":
-            file = gyfe.save_breadths(response, False)
+            file = gyfe.save_breadths(responses, False)
         elif ELECTIVE == "depth":
-            file = gyfe.save_depths(response, False)
+            file = gyfe.save_depths(responses, False)
         
         csv = io.BytesIO()
         csv.write(file.encode('utf-8'))
