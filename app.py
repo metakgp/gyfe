@@ -135,7 +135,7 @@ def logout():
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
 
-def fetch_response(SESSION :str, SEMESTER :str, YEAR :int, ELECTIVE :str, DEPT :str, jwt :str) -> tuple[requests.Response, ...]:
+def fetch_response(SESSION :str, SEMESTER :str, YEAR :int, ELECTIVE :str, DEPT :str, jwt :str) -> tuple:
     """
     save_depth and save_breadth needs 2 responses, that is PRIMARY_RESP and SUBJ_LIST_RESP,
     both function calls find_core_courses inside them, which requires COURSES_RESP to run.
@@ -196,7 +196,7 @@ def elective(ELECTIVE):
 
         responses = fetch_response(SESSION, SEMESTER, YEAR, ELECTIVE, DEPT, jwt)
 
-        if not all(response):
+        if not all(responses):
             return ErpResponse(False, "Failed to retrieve data..", status_code=500).to_response()
 
         if ELECTIVE == "breadth":
