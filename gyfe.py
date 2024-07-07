@@ -33,7 +33,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def find_core_courses(response):
+def find_core_courses(response: requests.Response) -> list[str]:
 
     # * Get code of core courses
     core_course_codes = []
@@ -49,8 +49,8 @@ def find_core_courses(response):
     return core_course_codes
 
 
-def find_all_unavailable_slots(unavailable_slots):
-    all_unavailable_slots = []
+def find_all_unavailable_slots(unavailable_slots: list[str]) -> list[str]:
+    all_unavailable_slots :list = []
 
     # overlappings between lab and theory slots
     with open("overlaps.json", "r") as f:
@@ -97,6 +97,13 @@ def save_depths(response :tuple, create_file:bool =True):
             - Make sure those subjects are not overlapping with core courses
                     - Subtask: find core courses
             - Go to Deptwise subject list to additionally scrape prof name and slot
+    
+    Parameters:
+        response (tuple): Tuple containing three elements of requests.Response objects.
+        create_file (bool): Flag to create a file or return the data as a string. Default is True.
+        
+    Returns:
+        None or str: If create_file is False, returns the CSV string of available depth electives.
     """
 
     soup = bs(response[0].text, "html.parser")
@@ -152,24 +159,17 @@ def save_depths(response :tuple, create_file:bool =True):
         if "bgcolor" in row.attrs:
             continue
         cells = row.find_all("td")
-        course = {}
-        try: 
-            course["Course Code"] = cells[0].text
-            course["Name"] = cells[1].text
-            course["Faculty"] = cells[2].text
-            course["LTP"] = cells[3].text
-            course["Slot"] = cells[5].text
-            course["Room"] = cells[6].text
-        except:
-            course["Course Code"] = None
-            course["Name"] = None
-            course["Faculty"] = None
-            course["LTP"] = None
-            course["Slot"] = None
-            course["Room"] = None
+        course = {
+                "Course Code": cells[0].text.strip() if len(cells) > 0 else None,
+                "Name": cells[1].text.strip() if len(cells) > 1 else None,
+                "Faculty": cells[2].text.strip() if len(cells) > 2 else None,
+                "LTP": cells[3].text.strip() if len(cells) > 3 else None,
+                "Slot": cells[5].text.strip() if len(cells) > 5 else None,
+                "Room": cells[6].text.strip() if len(cells) > 6 else None,
+                "Minor": "-"
+            }
 
         # adding which minor the course helps you get
-        course["Minor"] = "-"
         course_list = list(minors.keys())
         code_list = list(minors.values())
         for lst in code_list:
@@ -211,6 +211,13 @@ def save_breadths(response :tuple, create_file:bool =True):
     Workflow:
             - Check breadth list to get all breadth electives
             - Similar to save_depths, find unavailable slots and filter breadth electives
+
+    Parameters:
+        response (tuple): Tuple containing three elements of requests.Response objects.
+        create_file (bool): Flag to create a file or return the data as a string. Default is True.
+        
+    Returns:
+        None or str: If create_file is False, returns the CSV string of available breadth electives.
     """
 
     soup = bs(response[0].text, "html.parser")
@@ -321,35 +328,40 @@ def save_breadths(response :tuple, create_file:bool =True):
     else:
         return df.to_csv(index=False)
 
-def fetch_response(args, session):
-    headers = {
+def fetch_response(args: dict[str, ], session: requests.Session) -> tuple[requests.Response, ...]:
+    headers: dict[str, str] = {
         "timeout": "20",
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
     }
 
-    TIMETABLE_URL = f"https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={args.session}&index={args.year}&semester={args.semester}&dept={DEPT}"
-    ERP_ELECTIVES_URL = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"
-    
-    if args.electives == "depth":
-        SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={args.session}&for_semester={args.semester}&dept={DEPT}"
-        response_1 = session.get(TIMETABLE_URL, headers=headers)
-    
-    elif args.electives == "breadth":
-        SUBJ_LIST_URL = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
-        response_1 = session.get(ERP_ELECTIVES_URL, headers=headers)
-    
-    semester = 2 * args.year - 1 if args.semester== "AUTUMN" else 2 * args.year
-    COURSES_URL = f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={semester}"
+    DEPT: str = args["dept"]
 
-    response_2 = session.get(SUBJ_LIST_URL, headers=headers)
-    response_3 = session.post(COURSES_URL, headers=headers)
+    TIMETABLE_URL: str = f'https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={args["session"]}&index={args["year"]}&semester={args["semester"]}&dept={DEPT}'
+    ERP_ELECTIVES_URL: str = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"
+    
+    if args["electives"] == "depth":
+        SUBJ_LIST_URL: str = f'https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={args["session"]}&for_semester={args["semester"]}&dept={DEPT}'
+        TIMETABLE_RESP: requests.Response = session.get(TIMETABLE_URL, headers=headers)
+        ERP_ELECTIVES_RESP: requests.Response = None
+    elif args["electives"] == "breadth":
+        SUBJ_LIST_URL: str = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
+        ERP_ELECTIVES_RESP: requests.Response = session.get(ERP_ELECTIVES_URL, headers=headers)
+        TIMETABLE_RESP: requests.Response = None
+    
+    semester: int = 2 * args["year"] - 1 if args["semester"] == "AUTUMN" else 2 * args["year"]
+    COURSES_URL: str = f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={semester}"
 
-    return (response_1, response_2, response_3)
+    SUBJ_LIST_RESP: requests.Response = session.get(SUBJ_LIST_URL, headers=headers)
+    COURSES_RESP: requests.Response = session.post(COURSES_URL, headers=headers)
 
+    if args["electives"] == "depth":
+        return (TIMETABLE_RESP, SUBJ_LIST_RESP, COURSES_RESP)
+    elif args["electives"] == "breadth":
+        return (ERP_ELECTIVES_RESP, SUBJ_LIST_RESP, COURSES_RESP)
 
 def main():
     args = parse_args()
-
+    
     session = requests.Session()
     headers = {
         "timeout": "20",
@@ -363,8 +375,11 @@ def main():
             LOGGING=True,
             SESSION_STORAGE_FILE=".session"
         )
+        if erp.ROLL_NUMBER:
+            DEPT = erp.ROLL_NUMBER[2:4]
+        else:
+            DEPT = input("Enter your department code: ")
     else:
-        DEPT = input("Enter you dept code: ")
         if args.notp:
             _, ssoToken = erp.login(
                 headers,
@@ -383,30 +398,34 @@ def main():
                 SESSION_STORAGE_FILE=".session",
             )
     
+    args_dict = {
+        "session" : args.session,
+        "semester" : args.semester,
+        "year" : args.year - 1,
+        "electives" : args.electives,
+        "dept" : DEPT
+    }
+
     if args.electives == "breadth":
-
-        response = fetch_response(args, session)
+        response = fetch_response(args_dict, session)
         save_breadths(response)
-        depth = input("Do you want to get depth also? (Y/n) [Default: no]: ").lower()
-
+        depth = input("Do you want to get depth also? (y/N) [Default: no]: ").lower()
         if depth == 'y':
-            args.electives = "depth"
-            response = fetch_response(args, session)
+            args_dict["electives"] = "depth"
+            response = fetch_response(args_dict, session)
             save_depths(response)
 
     elif args.electives == "depth":
-
-        response = fetch_response(args, session)
+        response = fetch_response(args_dict, session)
         save_depths(response)
-        breadth = input("Do you want to get breadth also? (Y/n) [Default: no]: ").lower()
-
+        breadth = input("Do you want to get breadth also? (y/N) [Default: no]: ").lower()
         if breadth == 'y':
-            args.electives = "breadth"
-            response = fetch_response(args, session)
+            args_dict["electives"] = "breadth"
+            response = fetch_response(args_dict, session)
             save_breadths(response)
+
     else:
         print("Invalid electives type. Choose from 'breadth' or 'depth'")
-
 
 if __name__ == "__main__":
     main()
