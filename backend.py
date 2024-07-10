@@ -15,30 +15,28 @@ headers = {
         }
 
 class ErpResponse:
-    def __init__(self, success: bool, message: str = None, data: dict = None, status_code: int = 200, headers: dict = None):
+    def __init__(self, success: bool, message: str = None, data: dict = None, status_code: int = 200):
         self.success = success
         self.message = message
         self.data = data or {}
         self.status_code = status_code
-        self.headers = headers or {}
 
         if not success:
             logging.error(f" {message}")
 
     def to_dict(self):
         response = {
-            "status": "success" if self.success else "error",
-            "message": self.message
+            "status": "success" if self.success else "error"
         }
+        if self.message:
+            response.update({"message": self.message})
         if self.data:
             response.update(self.data)
         return response
 
     def to_response(self):
-        response = make_response(jsonify(self.to_dict()), self.status_code)
-        for key, value in self.headers.items():
-            response.headers[key] = value
-        return response
+        return jsonify(self.to_dict()), self.status_code
+
 
 @app.route("/secret-question", methods=["POST"])
 def get_secret_question():
@@ -47,97 +45,97 @@ def get_secret_question():
         roll_number = data.get("roll_number")
         if not roll_number:
             return ErpResponse(False, "Roll Number not provided", status_code=400).to_response()
-        
-        session = requests.Session()
 
-        secret_question = erp.get_secret_question(headers=headers, session=session, roll_number=roll_number, log=True)
+        session = requests.Session()
+        secret_question = erp.get_secret_question(
+            headers=headers, session=session, roll_number=roll_number, log=True)
         sessionToken = erp_utils.get_cookie(session, 'JSESSIONID')
 
-        response = ErpResponse(True, data={
-            "secret_question": secret_question
-        }, headers={
-            'Set-Cookie': f'sessionToken={sessionToken}'
+        return ErpResponse(True, data={
+            "SECRET_QUESTION": secret_question,
+            "SESSION_TOKEN": sessionToken
         }).to_response()
-        
-        return response
-
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
+
 
 @app.route("/request-otp", methods=["POST"])
 def request_otp():
     try:
-        sessionToken = request.cookies.get('sessionToken')
+        sessionToken = request.headers["Session-Token"]
         if not sessionToken:
-            return ErpResponse(False, "sessionToken not found", status_code=400).to_response()
-        
-        data = request.form
-        ROLL_NUMBER = data.get("roll_number")
-        PASSWORD = data.get("password")
-        secret_answer = data.get("secret_answer")
-        if not all([ROLL_NUMBER, PASSWORD, secret_answer]):
-            return ErpResponse(False, "Missing password or secret answer", status_code=400).to_response()
+            return ErpResponse(False, "Session-Token header not found", status_code=400).to_response()
 
-        session = requests.Session()
-        erp_utils.set_cookie(session, 'JSESSIONID', sessionToken)
+        data = request.form
+        roll_number = data.get("roll_number")
+        password = data.get("password")
+        secret_answer = data.get("secret_answer")
+        if not all([roll_number, password, secret_answer]):
+            return ErpResponse(False, "Missing roll_number or password or secret answer", status_code=400).to_response()
+
         login_details = erp.get_login_details(
-            ROLL_NUMBER=ROLL_NUMBER,
-            PASSWORD=PASSWORD,
+            ROLL_NUMBER=roll_number,
+            PASSWORD=password,
             secret_answer=secret_answer,
             sessionToken=sessionToken
         )
 
-        erp.request_otp(headers=headers, session=session, login_details=login_details, log=True)
-        return ErpResponse(True, message="OTP has been sent to your connected email accounts").to_response()
+        session = requests.Session()
+        erp_utils.set_cookie(session, 'JSESSIONID', sessionToken)
+        erp.request_otp(headers=headers, session=session,
+                        login_details=login_details, log=True)
 
+        return ErpResponse(True, message="OTP has been sent to your connected email accounts").to_response()
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
+
 
 @app.route("/login", methods=["POST"])
 def login():
     try:
-        sessionToken = request.cookies.get('sessionToken')
+        sessionToken = request.headers["Session-Token"]
         if not sessionToken:
-            return ErpResponse(False, "sessionToken not found", status_code=400).to_response()
+            return ErpResponse(False, "Session-Token header not found", status_code=400).to_response()
 
         data = request.form
-        ROLL_NUMBER = data.get("roll_number")
-        PASSWORD = data.get("password")
+        roll_number = data.get("roll_number")
+        password = data.get("password")
         secret_answer = data.get("secret_answer")
         otp = data.get("otp")
-
-        if not all([ROLL_NUMBER, secret_answer, PASSWORD, otp]):
-            return ErpResponse(False, "Missing roll number, password, secret answer or otp", status_code=400).to_response()
+        if not all([roll_number, password, secret_answer, otp]):
+            return ErpResponse(False, "Missing roll_number or password or secret answer or otp", status_code=400).to_response()
 
         login_details = erp.get_login_details(
-            ROLL_NUMBER=ROLL_NUMBER,
-            PASSWORD=PASSWORD,
+            ROLL_NUMBER=roll_number,
+            PASSWORD=password,
             secret_answer=secret_answer,
-            sessionToken=sessionToken,
+            sessionToken=sessionToken
         )
         login_details["email_otp"] = otp
 
         session = requests.Session()
         erp_utils.set_cookie(session, 'JSESSIONID', sessionToken)
+        ssoToken = erp.signin(headers=headers, session=session,
+                              login_details=login_details, log=True)
 
-        ssoToken = erp.signin(headers=headers, session=session, login_details=login_details, log=True)
-        response = ErpResponse(True, headers={
-            'Set-Cookie': f'ssoToken={ssoToken}'
+        return ErpResponse(True, data={
+            "ssoToken": ssoToken
         }).to_response()
-        return response
-
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
+
 
 @app.route('/elective/<ELECTIVE>', methods=["POST"])
 def elective(ELECTIVE):
     try:
-        ssoToken = request.cookies.get('ssoToken')
+        ssoToken = request.headers["SSO-Token"]
         if not ssoToken:
             return ErpResponse(False, "User not logged in.", status_code=401).to_response()
 
         data = request.form
         ROLL_NUMBER = data.get("roll_number")
+        if not ROLL_NUMBER:
+            return ErpResponse(False, "Roll Number not provided", status_code=400).to_response()
         DEPT = ROLL_NUMBER[2:4]
         current_month = datetime.now().month
         current_year = datetime.now().year

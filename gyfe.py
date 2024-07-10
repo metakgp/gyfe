@@ -18,6 +18,7 @@ try:
 except:
     manual  = True
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Get depth electives from ERP")
     parser.add_argument("electives", type=str, help="breadth/depth")
@@ -33,6 +34,7 @@ def parse_args():
     )
     return parser.parse_args()
 
+
 def find_core_courses(response: requests.Response) -> list[str]:
     #Get code of core courses
     core_course_codes = []
@@ -46,6 +48,7 @@ def find_core_courses(response: requests.Response) -> list[str]:
             core_course_codes.append(course['subno'])
     
     return core_course_codes
+
 
 def find_all_unavailable_slots(unavailable_slots: list[str]) -> list[str]:
     all_unavailable_slots :list = []
@@ -86,6 +89,7 @@ def find_all_unavailable_slots(unavailable_slots: list[str]) -> list[str]:
     all_unavailable_slots = list(set(all_unavailable_slots))
 
     return all_unavailable_slots
+
 
 def save_depths(response :tuple, create_file:bool =True):
     """
@@ -201,7 +205,8 @@ def save_depths(response :tuple, create_file:bool =True):
         print("Available depths saved to available_depths.txt")
     else:
         return df_all.to_csv(index=False)
-       
+
+
 def save_breadths(response :tuple, create_file:bool =True):
     """
     Workflow:
@@ -324,6 +329,7 @@ def save_breadths(response :tuple, create_file:bool =True):
     else:
         return df.to_csv(index=False)
 
+
 def fetch_response(SESSION, SEMESTER, YEAR, ELECTIVE, DEPT, ssoToken) -> tuple[requests.Response, ...]:
     headers = {
         "timeout": "20",
@@ -355,6 +361,7 @@ def fetch_response(SESSION, SEMESTER, YEAR, ELECTIVE, DEPT, ssoToken) -> tuple[r
         return (TIMETABLE_RESP, SUBJ_LIST_RESP, COURSES_RESP)
     elif ELECTIVE == "breadth":
         return (ERP_ELECTIVES_RESP, SUBJ_LIST_RESP, COURSES_RESP)
+
 
 def main():
     args = parse_args()
