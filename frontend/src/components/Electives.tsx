@@ -1,12 +1,21 @@
-import React from 'react';
+import React, {useContext} from 'react';
 import { BACKEND_URL } from './url';
 import { toast, Toaster } from 'react-hot-toast';
+import { UserContext } from '../app-context/user-context';
 
 const Electives: React.FC = () => {
+    const { user } = useContext(UserContext);
+
     const getBreadth = async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         event.preventDefault();
+        const formData = new URLSearchParams();
+        formData.append("roll_number",user?.roll || '');
         try {
-            const response = await fetch(`${BACKEND_URL}/elective/breadth`);
+            const response = await fetch(`${BACKEND_URL}/elective/breadth`,{
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: formData.toString(),
+            });
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -27,8 +36,14 @@ const Electives: React.FC = () => {
 
     const getDepth = async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         event.preventDefault();
+        const formData = new URLSearchParams();
+        formData.append("roll_number",user?.roll || '');
         try {
-            const response = await fetch(`${BACKEND_URL}/elective/depth`);
+            const response = await fetch(`${BACKEND_URL}/elective/depth`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: formData.toString(),
+            });
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
