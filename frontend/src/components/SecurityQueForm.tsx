@@ -50,7 +50,10 @@ const SecurityQueForm: React.FC = () => {
       try {
         const response = await fetch(`${BACKEND_URL}/request-otp`, {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Session-Token": sessionStorage.getItem("SESSION_TOKEN") || '',
+          },
           body: formData.toString(),
         });
     
@@ -82,7 +85,10 @@ const SecurityQueForm: React.FC = () => {
       try {
         const response = await fetch(`${BACKEND_URL}/login`, {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Session-Token": sessionStorage.getItem("SESSION_TOKEN") || '',
+          },
           body: login_data.toString(),  
         });
     

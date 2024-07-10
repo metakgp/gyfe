@@ -13,7 +13,10 @@ const Electives: React.FC = () => {
         try {
             const response = await fetch(`${BACKEND_URL}/elective/breadth`,{
                 method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "SSO-Token": sessionStorage.getItem("ssoToken") || '',
+                },
                 body: formData.toString(),
             });
             if (!response.ok) {
@@ -41,7 +44,10 @@ const Electives: React.FC = () => {
         try {
             const response = await fetch(`${BACKEND_URL}/elective/depth`, {
                 method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "SSO-Token": sessionStorage.getItem("ssoToken") || '',
+                },
                 body: formData.toString(),
             });
             if (!response.ok) {
