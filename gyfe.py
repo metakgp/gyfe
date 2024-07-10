@@ -413,7 +413,7 @@ def main():
         depth = input("Do you want to get depth also? (y/N) [Default: no]: ").lower()
         if depth == 'y':
             elective = "depth"
-            response = fetch_response(args_dict, session)
+            responses = fetch_response(acad_session, semester, year, elective, DEPT, ssoToken)
             save_depths(responses)
 
     elif args.electives == "depth":
