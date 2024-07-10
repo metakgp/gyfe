@@ -1,6 +1,7 @@
 # scrape depth electives
 import requests
 import iitkgp_erp_login.erp as erp
+import iitkgp_erp_login.utils as erp_utils
 from bs4 import BeautifulSoup as bs
 import pandas as pd
 import argparse
@@ -32,10 +33,8 @@ def parse_args():
     )
     return parser.parse_args()
 
-
 def find_core_courses(response: requests.Response) -> list[str]:
-
-    # * Get code of core courses
+    #Get code of core courses
     core_course_codes = []
     try:
         core_courses = response.json()
@@ -48,14 +47,13 @@ def find_core_courses(response: requests.Response) -> list[str]:
     
     return core_course_codes
 
-
 def find_all_unavailable_slots(unavailable_slots: list[str]) -> list[str]:
     all_unavailable_slots :list = []
 
     # overlappings between lab and theory slots
     with open("overlaps.json", "r") as f:
         overlaps = json.load(f)
-
+ 
     # some have more than 1 slot, they are separated
     for slot in unavailable_slots:
         if "," in slot:
@@ -88,7 +86,6 @@ def find_all_unavailable_slots(unavailable_slots: list[str]) -> list[str]:
     all_unavailable_slots = list(set(all_unavailable_slots))
 
     return all_unavailable_slots
-
 
 def save_depths(response :tuple, create_file:bool =True):
     """
@@ -204,8 +201,7 @@ def save_depths(response :tuple, create_file:bool =True):
         print("Available depths saved to available_depths.txt")
     else:
         return df_all.to_csv(index=False)
-    
-    
+       
 def save_breadths(response :tuple, create_file:bool =True):
     """
     Workflow:
@@ -335,7 +331,7 @@ def fetch_response(SESSION, SEMESTER, YEAR, ELECTIVE, DEPT, ssoToken) -> tuple[r
     }
 
     session = requests.Session()
-    session.cookies.set('ssoToken', ssoToken, domain='erp.iitkgp.ac.in')
+    erp_utils.set_cookie(session, 'ssoToken', ssoToken)
 
     TIMETABLE_URL: str = f'https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={SESSION}&index={YEAR}&semester={SEMESTER}&dept={DEPT}'
     ERP_ELECTIVES_URL: str = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"

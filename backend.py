@@ -1,6 +1,6 @@
-
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, request, send_file, jsonify, make_response
 import iitkgp_erp_login.erp as erp
+import iitkgp_erp_login.utils as erp_utils
 import logging
 import gyfe
 import io
@@ -15,11 +15,12 @@ headers = {
         }
 
 class ErpResponse:
-    def __init__(self, success: bool, message: str = None, data: dict = None, status_code: int = 200):
+    def __init__(self, success: bool, message: str = None, data: dict = None, status_code: int = 200, headers: dict = None):
         self.success = success
         self.message = message
         self.data = data or {}
         self.status_code = status_code
+        self.headers = headers or {}
 
         if not success:
             logging.error(f" {message}")
@@ -34,7 +35,10 @@ class ErpResponse:
         return response
 
     def to_response(self):
-        return jsonify(self.to_dict()), self.status_code
+        response = make_response(jsonify(self.to_dict()), self.status_code)
+        for key, value in self.headers.items():
+            response.headers[key] = value
+        return response
 
 @app.route("/secret-question", methods=["POST"])
 def get_secret_question():
@@ -42,17 +46,20 @@ def get_secret_question():
         data = request.get_json()
         roll_number = data.get("roll_number")
         if not roll_number:
-            return ErpResponse(False, "Roll Number not provided.", status_code=400).to_response()
+            return ErpResponse(False, "Roll Number not provided", status_code=400).to_response()
         
         session = requests.Session()
 
         secret_question = erp.get_secret_question(headers=headers, session=session, roll_number=roll_number, log=True)
-        JSESSIONID = session.cookies.get('JSESSIONID')
+        sessionToken = erp_utils.get_cookie(session, 'JSESSIONID')
 
-        return ErpResponse(True, data={
-            "secret_question": secret_question,
-            "JSESSIONID": JSESSIONID
+        response = ErpResponse(True, data={
+            "secret_question": secret_question
+        }, headers={
+            'Set-Cookie': f'sessionToken={sessionToken}'
         }).to_response()
+        
+        return response
 
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
@@ -60,11 +67,11 @@ def get_secret_question():
 @app.route("/request-otp", methods=["POST"])
 def request_otp():
     try:
-        data = request.get_json()
-        JSESSIONID = data.get("JSESSIONID")
-        if not JSESSIONID:
-            return ErpResponse(False, "JSESSIONID not provided.", status_code=400).to_response()
+        sessionToken = request.cookies.get('sessionToken')
+        if not sessionToken:
+            return ErpResponse(False, "sessionToken not found", status_code=400).to_response()
         
+        data = request.get_json()
         ROLL_NUMBER = data.get("roll_number")
         PASSWORD = data.get("password")
         secret_answer = data.get("secret_answer")
@@ -72,12 +79,12 @@ def request_otp():
             return ErpResponse(False, "Missing password or secret answer", status_code=400).to_response()
 
         session = requests.Session()
-        session.cookies.set(name='JSESSIONID', value=JSESSIONID, domain='erp.iitkgp.ac.in')
+        erp_utils.set_cookie(session, 'JSESSIONID', sessionToken)
         login_details = erp.get_login_details(
             ROLL_NUMBER=ROLL_NUMBER,
             PASSWORD=PASSWORD,
             secret_answer=secret_answer,
-            sessionToken=JSESSIONID
+            sessionToken=sessionToken
         )
 
         erp.request_otp(headers=headers, session=session, login_details=login_details, log=True)
@@ -89,11 +96,11 @@ def request_otp():
 @app.route("/login", methods=["POST"])
 def login():
     try:
-        data = request.get_json()
-        JSESSIONID = data.get("JSESSIONID")
-        if not JSESSIONID:
-            return ErpResponse(False, "JSESSIONID not provided.", status_code=400).to_response()
+        sessionToken = request.cookies.get('sessionToken')
+        if not sessionToken:
+            return ErpResponse(False, "sessionToken not found", status_code=400).to_response()
 
+        data = request.get_json()
         ROLL_NUMBER = data.get("roll_number")
         PASSWORD = data.get("password")
         secret_answer = data.get("secret_answer")
@@ -106,17 +113,18 @@ def login():
             ROLL_NUMBER=ROLL_NUMBER,
             PASSWORD=PASSWORD,
             secret_answer=secret_answer,
-            sessionToken=JSESSIONID,
+            sessionToken=sessionToken,
         )
         login_details["email_otp"] = otp
 
         session = requests.Session()
-        session.cookies.set(name='JSESSIONID', value=JSESSIONID, domain='erp.iitkgp.ac.in')
+        erp_utils.set_cookie(session, 'JSESSIONID', sessionToken)
 
         ssoToken = erp.signin(headers=headers, session=session, login_details=login_details, log=True)
-        return ErpResponse(True, data={
-            "ssoToken": ssoToken
+        response = ErpResponse(True, headers={
+            'Set-Cookie': f'ssoToken={ssoToken}'
         }).to_response()
+        return response
 
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
@@ -124,11 +132,11 @@ def login():
 @app.route('/elective/<ELECTIVE>', methods=["POST"])
 def elective(ELECTIVE):
     try:
-        data = request.get_json()
-        ssoToken = data.get("ssoToken")
+        ssoToken = request.cookies.get('ssoToken')
         if not ssoToken:
-            return ErpResponse(False, "ssoToken not provided.", status_code=400).to_response()
+            return ErpResponse(False, "User not logged in.", status_code=401).to_response()
 
+        data = request.get_json()
         ROLL_NUMBER = data.get("roll_number")
         DEPT = ROLL_NUMBER[2:4]
         current_month = datetime.now().month
