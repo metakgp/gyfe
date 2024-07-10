@@ -43,7 +43,7 @@ class ErpResponse:
 @app.route("/secret-question", methods=["POST"])
 def get_secret_question():
     try:
-        data = request.get_json()
+        data = request.form
         roll_number = data.get("roll_number")
         if not roll_number:
             return ErpResponse(False, "Roll Number not provided", status_code=400).to_response()
@@ -71,7 +71,7 @@ def request_otp():
         if not sessionToken:
             return ErpResponse(False, "sessionToken not found", status_code=400).to_response()
         
-        data = request.get_json()
+        data = request.form
         ROLL_NUMBER = data.get("roll_number")
         PASSWORD = data.get("password")
         secret_answer = data.get("secret_answer")
@@ -100,7 +100,7 @@ def login():
         if not sessionToken:
             return ErpResponse(False, "sessionToken not found", status_code=400).to_response()
 
-        data = request.get_json()
+        data = request.form
         ROLL_NUMBER = data.get("roll_number")
         PASSWORD = data.get("password")
         secret_answer = data.get("secret_answer")
@@ -136,7 +136,7 @@ def elective(ELECTIVE):
         if not ssoToken:
             return ErpResponse(False, "User not logged in.", status_code=401).to_response()
 
-        data = request.get_json()
+        data = request.form
         ROLL_NUMBER = data.get("roll_number")
         DEPT = ROLL_NUMBER[2:4]
         current_month = datetime.now().month
