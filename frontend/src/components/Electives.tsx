@@ -63,7 +63,6 @@ const Electives: React.FC = () => {
                     <div><button className='download depth' onClick={getDepth}>Download</button></div>
                 </div>
             </div>
-            {/* <div className='logout'><button>Logout</button></div> */}
         </div>
     );
 }

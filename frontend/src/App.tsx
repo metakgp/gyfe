@@ -33,7 +33,7 @@ const App: React.FC = () => {
       <Header />
       <Routes>
         <Route path="/login" element={<MultiForm/>}/>
-        <Route path="/" element={sessionStorage.getItem("loginStatus") ? <Electives/> : <Navigate to='/login'/>}/>
+        <Route path="/" element={(!!sessionStorage.getItem("ssoToken")) ? <Electives/> : <Navigate to='/login'/>}/>
       </Routes>
       <About setOpenModal = {setOpenModal}/>
       {openModal && <Modal closeModal = {setOpenModal}/>}

@@ -34,7 +34,6 @@ const SecurityQueForm: React.FC = () => {
 
       const securityAns = getValues('securityAnswer'); 
       // const passwd = sessionStorage.getItem("passwd"); // hadnle the hashed password
-      const passwd = user?.password;
       updateState({ user: { ...user, securityAns} });
 
       // Test if global state works
@@ -43,16 +42,16 @@ const SecurityQueForm: React.FC = () => {
       console.log(user?.securityQue)
       console.log(user?.securityAns)
 
-      const formData = {
-        secret_answer: securityAns,
-        password: passwd,
-      }
-
+      const formData = new URLSearchParams();
+        formData.append("roll_number", user?.roll || '');
+        formData.append("password", user?.password || '');
+        formData.append("secret_answer",securityAns);
+      
       try {
         const response = await fetch(`${BACKEND_URL}/request-otp`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: formData.toString(),
         });
     
         if (!response.ok) {
@@ -74,16 +73,17 @@ const SecurityQueForm: React.FC = () => {
     
     const onSubmit = async () => {
       const otp1 = getValues('otp'); 
-      const login_data = {
-        password: user?.password,
-        secret_answer: user?.securityAns,
-        otp: otp1,
-      }
+      const login_data = new URLSearchParams();
+        login_data.append("roll_number",user?.roll || '');
+        login_data.append("password",user?.password || '');
+        login_data.append("secret_answer",user?.securityAns || '');
+        login_data.append("otp",otp1);
+        
       try {
         const response = await fetch(`${BACKEND_URL}/login`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(login_data),  
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: login_data.toString(),  
         });
     
         if (!response.ok) {
@@ -94,7 +94,7 @@ const SecurityQueForm: React.FC = () => {
         console.log(responseData.message); 
        
         updateState({ user: { ...user, isLoggedIn: true } }); // set global state isLoggedIn to true
-        sessionStorage.setItem("loginStatus", JSON.stringify(user?.isLoggedIn));
+        sessionStorage.setItem("ssoToken", responseData.ssoToken);
         toast.success("Successfully logged in to ERP!");
 
         // updateStatus(); 

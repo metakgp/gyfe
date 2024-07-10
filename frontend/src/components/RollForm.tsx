@@ -36,21 +36,25 @@ const RollForm: React.FC<FormProps> = ({onSubmit}) => {
       setPasswd(data.passwd);
       
       try {
+        const formData = new URLSearchParams();
+        formData.append("roll_number", data.roll_number);
+        formData.append("password", data.passwd);
+
         const response = await fetch(`${BACKEND_URL}/secret-question`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: formData.toString(),
         })
     
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
     
-        const responseData = await response.json(); // returns jwt and secret question
-        sessionStorage.setItem("jwt",responseData.jwt) //store jwt
+        const responseData = await response.json(); // returns session token and secret question
+        sessionStorage.setItem("SESSION_TOKEN",responseData.SESSION_TOKEN) //store session token
         toast.success("Fetched security question!");
         // sessionStorage.setItem("secret_question",responseData.secret_question) 
-        setSecurityQue(responseData.secret_question);
+        setSecurityQue(responseData.SECRET_QUESTION);
         updateState({ user: { ...user, roll, password, securityQue} });
         onSubmit();
       } 

@@ -1,5 +1,4 @@
-import React, { useContext } from 'react';
-import { UserContext } from '../app-context/user-context';
+import React from 'react';
 import { BACKEND_URL } from './url';
 import { toast, Toaster } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +8,6 @@ interface AboutProps {
 }
 
 const About: React.FC<AboutProps> = ({setOpenModal}) => {
-    const { user } = useContext(UserContext);
     const navigate = useNavigate();
 
     const handleLogout = async () => {
@@ -27,7 +25,7 @@ const About: React.FC<AboutProps> = ({setOpenModal}) => {
 
             if (responseData.success) {
                 toast.success("Logged out successfully!");
-                sessionStorage.setItem("loginStatus", JSON.stringify(user?.isLoggedIn));
+                sessionStorage.removeItem("ssoToken");
                 navigate('/login'); 
             } else {
                 throw new Error(responseData.message);
@@ -37,7 +35,8 @@ const About: React.FC<AboutProps> = ({setOpenModal}) => {
             toast.error("Error logging out!");
         }
     }
-    const loginStatus = sessionStorage.getItem("loginStatus");
+    const ssoToken = sessionStorage.getItem("ssoToken");
+    const loginStatus = !!ssoToken;
 
     return (
         <div className='about' style={loginStatus? {display: "flex", columnGap: "1.5rem", justifyContent: "center"} : {}}>
