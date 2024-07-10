@@ -125,8 +125,8 @@ def login():
         return ErpResponse(False, str(e), status_code=500).to_response()
 
 
-@app.route('/elective/<ELECTIVE>', methods=["POST"])
-def elective(ELECTIVE):
+@app.route('/elective/<elective>', methods=["POST"])
+def elective(elective):
     try:
         ssoToken = request.headers["SSO-Token"]
         if not ssoToken:
@@ -140,26 +140,26 @@ def elective(ELECTIVE):
         current_month = datetime.now().month
         current_year = datetime.now().year
         if current_month in [1, 2, 3, 4, 5, 6]:
-            SEMESTER = "SPRING"
-            SESSION = str(current_year - 1) +'-'+ str(current_year)
-            YEAR = current_year - int("20"+ROLL_NUMBER[:2]) - 1
+            semester = "SPRING"
+            acad_session = str(current_year - 1) +'-'+ str(current_year)
+            year = current_year - int("20"+ROLL_NUMBER[:2]) - 1
         elif current_month in [7, 8, 9, 10, 11, 12]:
-            SEMESTER = "AUTUMN"
-            SESSION = str(current_year) +'-'+ str(current_year + 1)
-            YEAR = current_year - int("20"+ROLL_NUMBER[:2])
+            semester = "AUTUMN"
+            acad_session = str(current_year) +'-'+ str(current_year + 1)
+            year = current_year - int("20"+ROLL_NUMBER[:2])
         
-        SEMESTER = data.get("semester") if data.get("semester") else SEMESTER
-        SESSION = data.get("session") if data.get("session") else SESSION
-        YEAR = int(data.get("year"))-1 if data.get("year") else YEAR
+        semester = data.get("semester") if data.get("semester") else semester
+        acad_session = data.get("session") if data.get("session") else acad_session
+        year = int(data.get("year"))-1 if data.get("year") else year
 
-        responses = gyfe.fetch_response(SESSION, SEMESTER, YEAR, ELECTIVE, DEPT, ssoToken)
+        responses = gyfe.fetch_response(acad_session, semester, year, elective, DEPT, ssoToken)
 
         if not all(responses):
             return ErpResponse(False, "Failed to retrieve data..", status_code=500).to_response()
 
-        if ELECTIVE == "breadth":
+        if elective == "breadth":
             file = gyfe.save_breadths(responses, False)
-        elif ELECTIVE == "depth":
+        elif elective == "depth":
             file = gyfe.save_depths(responses, False)
         
         csv = io.BytesIO()
@@ -170,7 +170,7 @@ def elective(ELECTIVE):
             csv,
             as_attachment=True,
             mimetype='text/csv',
-            download_name=f"${ELECTIVE}_{ROLL_NUMBER}.csv"
+            download_name=f"${elective}_{ROLL_NUMBER}.csv"
         )
 
     except Exception as e:

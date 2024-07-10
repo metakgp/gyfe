@@ -330,7 +330,7 @@ def save_breadths(response :tuple, create_file:bool =True):
         return df.to_csv(index=False)
 
 
-def fetch_response(SESSION, SEMESTER, YEAR, ELECTIVE, DEPT, ssoToken) -> tuple[requests.Response, ...]:
+def fetch_response(acad_session: str, semester: str, year: int, elective: str, DEPT: str, ssoToken: str) -> tuple[requests.Response, ...]:
     headers = {
         "timeout": "20",
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
@@ -339,27 +339,27 @@ def fetch_response(SESSION, SEMESTER, YEAR, ELECTIVE, DEPT, ssoToken) -> tuple[r
     session = requests.Session()
     erp_utils.set_cookie(session, 'ssoToken', ssoToken)
 
-    TIMETABLE_URL: str = f'https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={SESSION}&index={YEAR}&semester={SEMESTER}&dept={DEPT}'
+    TIMETABLE_URL: str = f'https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={acad_session}&index={year}&semester={semester}&dept={DEPT}'
     ERP_ELECTIVES_URL: str = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"
     
-    if ELECTIVE == "depth":
-        SUBJ_LIST_URL: str = f'https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={SESSION}&for_semester={SEMESTER}&dept={DEPT}'
+    if elective == "depth":
+        SUBJ_LIST_URL: str = f'https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={acad_session}&for_semester={semester}&dept={DEPT}'
         TIMETABLE_RESP: requests.Response = session.get(TIMETABLE_URL, headers=headers)
         ERP_ELECTIVES_RESP: requests.Response = None
-    elif ELECTIVE == "breadth":
+    elif elective == "breadth":
         SUBJ_LIST_URL: str = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
         ERP_ELECTIVES_RESP: requests.Response = session.get(ERP_ELECTIVES_URL, headers=headers)
         TIMETABLE_RESP: requests.Response = None
     
-    semester: int = 2 * YEAR - 1 if SEMESTER == "AUTUMN" else 2 * YEAR
-    COURSES_URL: str = f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={semester}"
+    sem: int = 2 * year - 1 if semester == "AUTUMN" else 2 * year
+    COURSES_URL: str = f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={sem}"
 
     SUBJ_LIST_RESP: requests.Response = session.get(SUBJ_LIST_URL, headers=headers)
     COURSES_RESP: requests.Response = session.post(COURSES_URL, headers=headers)
 
-    if ELECTIVE == "depth":
+    if elective == "depth":
         return (TIMETABLE_RESP, SUBJ_LIST_RESP, COURSES_RESP)
-    elif ELECTIVE == "breadth":
+    elif elective == "breadth":
         return (ERP_ELECTIVES_RESP, SUBJ_LIST_RESP, COURSES_RESP)
 
 
@@ -402,27 +402,27 @@ def main():
                 SESSION_STORAGE_FILE=".session",
             )
 
-    SESSION = args.session
-    SEMESTER = args.semester
-    YEAR = args.year -1
-    ELECTIVE = args.electives
+    acad_session = args.session
+    semester = args.semester
+    year = args.year -1
+    elective = args.electives
 
     if args.electives == "breadth":
-        responses = fetch_response(SESSION, SEMESTER, YEAR, ELECTIVE, DEPT, ssoToken)
+        responses = fetch_response(acad_session, semester, year, elective, DEPT, ssoToken)
         save_breadths(responses)
         depth = input("Do you want to get depth also? (y/N) [Default: no]: ").lower()
         if depth == 'y':
-            ELECTIVE = "depth"
+            elective = "depth"
             response = fetch_response(args_dict, session)
             save_depths(responses)
 
     elif args.electives == "depth":
-        responses = fetch_response(SESSION, SEMESTER, YEAR, ELECTIVE, DEPT, ssoToken)
+        responses = fetch_response(acad_session, semester, year, elective, DEPT, ssoToken)
         save_depths(responses)
         breadth = input("Do you want to get breadth also? (y/N) [Default: no]: ").lower()
         if breadth == 'y':
-            ELECTIVE = "breadth"
-            responses = fetch_response(SESSION, SEMESTER, YEAR, ELECTIVE, DEPT, ssoToken)
+            elective = "breadth"
+            responses = fetch_response(acad_session, semester, year, elective, DEPT, ssoToken)
             save_breadths(responses)
 
     else:
