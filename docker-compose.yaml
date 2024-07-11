@@ -2,8 +2,8 @@ version: "3"
 
 services:
     backend:
-        image: metakgp/gyfe
-        container_name: gyfe
+        image: metakgporg/gyfe-api
+        container_name: gyfe-api
         build: .
         restart: always
         ports:
@@ -11,7 +11,7 @@ services:
         networks:
             metaploy-network:
                 aliases:
-                    - gyfe
+                    - gyfe-api
         volumes:
             - nginx-config-volume:/etc/nginx/sites-enabled
 
