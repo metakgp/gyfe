@@ -1,16 +1,20 @@
-import React, { useState, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { UserContext } from './app-context/user-context';
-import './styles/App.scss'
-import Header from './components/Header'
-import Footer from './components/Footer'
-import Electives from './components/Electives';
-import MultiForm from './components/MultiForm';
-import About from './components/About';
-import Modal from './components/Modal';
+import React, { useState, useContext } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { UserContext } from "./app-context/user-context";
+import "./styles/App.scss";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import Electives from "./components/Electives";
+import MultiForm from "./components/MultiForm";
+import About from "./components/About";
+import Modal from "./components/Modal";
 
 const App: React.FC = () => {
-
   const [openModal, setOpenModal] = useState(false);
   const { user } = useContext(UserContext);
 
@@ -30,17 +34,26 @@ const App: React.FC = () => {
   return (
     <Router>
       <div className="App">
-      <Header />
-      <Routes>
-        <Route path="/login" element={<MultiForm/>}/>
-        <Route path="/" element={(!!sessionStorage.getItem("ssoToken")) ? <Electives/> : <Navigate to='/login'/>}/>
-      </Routes>
-      <About setOpenModal = {setOpenModal}/>
-      {openModal && <Modal closeModal = {setOpenModal}/>}
-      <Footer />
+        <Header />
+        <Routes>
+          <Route path="/login" element={<MultiForm />} />
+          <Route
+            path="/"
+            element={
+              !!sessionStorage.getItem("ssoToken") ? (
+                <Electives />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+        </Routes>
+        <About setOpenModal={setOpenModal} />
+        {openModal && <Modal closeModal={setOpenModal} />}
+        <Footer />
       </div>
     </Router>
-  )
-}
+  );
+};
 
 export default App;

@@ -1,11 +1,11 @@
-import React from 'react'
+import React from "react";
 
 export interface UserObject {
-  roll?: string
-  password?: string
-  securityQue?: string
-  securityAns?: string
-  isLoggedIn?: boolean
+  roll?: string;
+  password?: string;
+  securityQue?: string;
+  securityAns?: string;
+  isLoggedIn?: boolean;
 }
 
 // export const User: UserObject = {
@@ -16,15 +16,15 @@ export interface UserObject {
 // }
 
 const defaultState: AppState = {
-    user: {
-      isLoggedIn: false,
-    },
-    updateState: () => {},
-  }
+  user: {
+    isLoggedIn: false,
+  },
+  updateState: () => {},
+};
 
-export interface AppState { 
-  user?: UserObject
-  updateState: (newState: Partial<AppState>) => void
+export interface AppState {
+  user?: UserObject;
+  updateState: (newState: Partial<AppState>) => void;
 }
 
-export const UserContext = React.createContext<AppState>(defaultState)
+export const UserContext = React.createContext<AppState>(defaultState);
