@@ -1,172 +1,179 @@
-import React, { useContext, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useNavigate } from "react-router-dom";
+
 import { BACKEND_URL } from "./url";
-import { UserContext } from "../app-context/user-context";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
+import { useAppContext } from "../AppContext/AppContext";
 
 const schema = yup.object().shape({
-  securityAnswer: yup.string().required("Security answer is required!"),
-  otp: yup
-    .string()
-    .required("OTP is required")
-    .matches(/^\d{6}$/, "Please enter valid 6-digit OTP!"),
+    securityAnswer: yup.string().required("Security answer is required!"),
+    otp: yup.string().optional(),
 });
 
 interface IFormInput {
-  securityAnswer: string;
-  otp: string;
+    securityAnswer: string;
+    otp?: string;
 }
 
 const SecurityQueForm: React.FC = () => {
-  const {
-    register,
-    handleSubmit,
-    getValues,
-    trigger,
-    formState: { errors },
-  } = useForm<IFormInput>({ resolver: yupResolver(schema) });
-  const { user, updateState } = useContext(UserContext);
-  const [isAnswered, setIsAnswered] = useState(false);
+    const {
+        register,
+        handleSubmit,
+        getValues,
+        trigger,
+        formState: { errors },
+    } = useForm<IFormInput>({ resolver: yupResolver(schema) });
+    const { user, setAuth } = useAppContext();
 
-  const getOTP = async (
-    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
-  ) => {
-    event.preventDefault(); // To Prevent reload
+    const [otpRequested, setOtpRequested] = useState(false);
 
-    const isValid = await trigger("securityAnswer");
+    const getOTP = async () => {
+        const isValid = await trigger("securityAnswer");
+        if (!isValid) return;
+        const securityAns = getValues("securityAnswer");
 
-    if (!isValid) {
-      return; // If validation fails, do not proceed
-    }
+        const formData = new URLSearchParams();
+        formData.append("roll_number", user.rollNo);
+        formData.append("password", user.password);
+        formData.append("secret_answer", securityAns);
 
-    const securityAns = getValues("securityAnswer");
-    // const passwd = sessionStorage.getItem("passwd"); // hadnle the hashed password
-    updateState({ user: { ...user, securityAns } });
+        try {
+            const res = await fetch(`${BACKEND_URL}/request-otp`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Session-Token": user.sessionToken!,
+                },
+                body: formData.toString(),
+            });
 
-    // Test if global state works
-    console.log(user?.roll);
-    console.log(user?.password);
-    console.log(user?.securityQue);
-    console.log(user?.securityAns);
+            const resData = await res.json();
 
-    const formData = new URLSearchParams();
-    formData.append("roll_number", user?.roll || "");
-    formData.append("password", user?.password || "");
-    formData.append("secret_answer", securityAns);
+            if (!res.ok) {
+                toast.error(resData.message);
+                if (res.status == 400) {
+                    return;
+                }
+                if (res.status == 401)
+                    if (resData.message == "Invalid Password")
+                        return setAuth((prev) => ({ ...prev, currentStep: 0 }));
 
-    try {
-      const response = await fetch(`${BACKEND_URL}/request-otp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Session-Token": sessionStorage.getItem("SESSION_TOKEN") || "",
-        },
-        body: formData.toString(),
-      });
+                if (res.status == 500) throw new Error(resData.message);
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-      }
+                return;
+            }
 
-      const responseData = await response.json();
-      console.log(responseData.message);
-      setIsAnswered(true);
-      toast.success("OTP sent successfully to ERP registered email id!");
-    } catch (error) {
-      console.error("Error fetching OTP:", error);
-      toast.error("Error fetching OTP!");
-    }
-  };
+            setAuth((prev) => ({
+                ...prev,
+                user: { ...prev.user, securityAnswer: securityAns },
+            }));
+            setOtpRequested(true);
+            toast.success(resData.message);
+        } catch (error) {
+            console.log(error);
+            setOtpRequested(false);
+        }
+    };
 
-  const navigate = useNavigate();
+    const login = async () => {
+        const otp = getValues("otp");
+        if (!otp || otp.length != 6) return toast.error("Invalid OTP Length");
 
-  const onSubmit = async () => {
-    const otp1 = getValues("otp");
-    const login_data = new URLSearchParams();
-    login_data.append("roll_number", user?.roll || "");
-    login_data.append("password", user?.password || "");
-    login_data.append("secret_answer", user?.securityAns || "");
-    login_data.append("otp", otp1);
+        const login_data = new URLSearchParams();
+        login_data.append("roll_number", user.rollNo!);
+        login_data.append("password", user.password!);
+        login_data.append("secret_answer", user.securityAnswer!);
+        login_data.append("otp", otp);
 
-    try {
-      const response = await fetch(`${BACKEND_URL}/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Session-Token": sessionStorage.getItem("SESSION_TOKEN") || "",
-        },
-        body: login_data.toString(),
-      });
+        try {
+            const res = await fetch(`${BACKEND_URL}/login`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Session-Token": user.sessionToken!,
+                },
+                body: login_data.toString(),
+            });
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-      }
+            const resData = await res.json();
 
-      const responseData = await response.json();
-      console.log(responseData.message);
+            if (!res.ok) {
+                toast.error(resData.message);
+                if (res.status == 400) {
+                    return;
+                }
+                if (res.status == 401)
+                    if (resData.message == "Invalid Password")
+                        return setAuth((prev) => ({ ...prev, currentStep: 0 }));
+                if (res.status == 500) throw new Error(resData.message);
+            }
 
-      updateState({ user: { ...user, isLoggedIn: true } }); // set global state isLoggedIn to true
-      sessionStorage.setItem("ssoToken", responseData.ssoToken);
-      toast.success("Successfully logged in to ERP!");
+            sessionStorage.setItem("ssoToken", resData.ssoToken);
+            setAuth((prev) => ({
+                ...prev,
+                currentStep: 2,
+                user: { ...prev.user, ssoToken: resData.ssoToken },
+            }));
+            toast.success("Successfully logged in to ERP!");
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
-      // updateStatus();
-      navigate("/");
-    } catch (error) {
-      console.error("User not logged in", error);
-      toast.error(
-        "Error logging to ERP! Please try again and ensure to enter correct credentials",
-      );
-      navigate("/login"); // redirecting back to /login
-    }
-  };
+    const onSubmit = async () => {
+        if (otpRequested) login();
+        else getOTP();
+    };
 
-  return (
-    <div className="security-form">
-      <form className="login-form" onSubmit={handleSubmit(onSubmit)}>
-        <Toaster position="bottom-center" />
-        <div className="question">
-          <label>{user?.securityQue}: </label>
-          <input
-            type="text"
-            placeholder="Enter your answer"
-            className="input-box box"
-            {...register("securityAnswer")}
-          ></input>
-          {errors.securityAnswer && (
-            <p style={{ color: "red" }}>{errors.securityAnswer.message}</p>
-          )}
-        </div>
-        <div className="otp-box">
-          <label>Enter OTP</label>
-          <input
-            type="text"
-            placeholder="Enter OTP sent to email"
-            className="input-box box"
-            {...register("otp")}
-            disabled={!isAnswered}
-            style={isAnswered ? { cursor: "text" } : { cursor: "not-allowed" }}
-          ></input>
-          {errors.otp && <p style={{ color: "red" }}>{errors.otp.message}</p>}
-        </div>
-        {isAnswered ? (
-          <div>
-            <button className="login-btn" type="submit">
-              Login
-            </button>
-          </div>
-        ) : (
-          <div>
-            <button className="otp" onClick={getOTP}>
-              Send OTP
-            </button>
-          </div>
-        )}
-      </form>
-    </div>
-  );
+    return (
+        <form className="login-form" onSubmit={handleSubmit(onSubmit)}>
+            <div className="input-item">
+                <label>{user.securityQuestion || "\u00A0"}</label>
+                <input
+                    type="password"
+                    placeholder="Enter your answer"
+                    className={
+                        errors.securityAnswer
+                            ? "input-box input-error"
+                            : "input-box"
+                    }
+                    {...register("securityAnswer")}
+                ></input>
+                <span className="input-error-msg">
+                    {errors.securityAnswer?.message || "\u00A0"}
+                </span>
+            </div>
+            <div className="input-item">
+                <label>Enter OTP</label>
+                <input
+                    type="text"
+                    placeholder="Enter OTP sent to email"
+                    className={
+                        errors.otp ? "input-box input-error" : "input-box"
+                    }
+                    {...register("otp", {
+                        required: otpRequested,
+                        disabled: !otpRequested,
+                    })}
+                    style={
+                        otpRequested
+                            ? { cursor: "text" }
+                            : { cursor: "not-allowed" }
+                    }
+                ></input>
+                <span className="input-error-msg">
+                    {errors.otp?.message || "\u00A0"}
+                </span>
+            </div>
+            <div>
+                <button className="submit-button" type="submit">
+                    {otpRequested ? "Login" : "Send OTP"}
+                </button>
+            </div>
+        </form>
+    );
 };
 
 export default SecurityQueForm;

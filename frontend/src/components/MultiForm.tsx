@@ -1,22 +1,19 @@
-import React, { useState } from "react";
+import React from "react";
 import RollForm from "./RollForm";
 import SecurityQueForm from "./SecurityQueForm";
+import { useAppContext } from "../AppContext/AppContext";
+import Electives from "./Electives";
+import ErrorPage from "./ErrorPage";
 
 const MultiForm: React.FC = () => {
-  const [showSecurityQueForm, setSecurityQueForm] = useState(false);
-
-  const handleGetSecurityQuestion = () => {
-    setSecurityQueForm(true);
-  };
-
-  return (
-    <div>
-      {!showSecurityQueForm && (
-        <RollForm onSubmit={handleGetSecurityQuestion} />
-      )}
-      {showSecurityQueForm && <SecurityQueForm />}
-    </div>
-  );
+    const { currentStep, user } = useAppContext();
+    console.log({ currentStep, user });
+    if (currentStep == 2 && user.sessionToken && user.ssoToken)
+        return <Electives />;
+    if (currentStep == 1 && user.sessionToken && user.securityQuestion)
+        return <SecurityQueForm />;
+    if (currentStep == 0) return <RollForm />;
+    return <ErrorPage />;
 };
 
 export default MultiForm;

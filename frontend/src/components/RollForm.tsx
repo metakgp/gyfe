@@ -1,110 +1,121 @@
-import React, { useContext, useState } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { BACKEND_URL } from "./url";
-import { UserContext } from "../app-context/user-context";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
+import Spinner from "./Spinner";
+import { useAppContext } from "../AppContext/AppContext";
 
 interface IFormInput {
-  roll_number: string;
-  passwd: string;
+    roll_number: string;
+    password: string;
 }
-
-//validation
 const schema = yup.object().shape({
-  roll_number: yup
-    .string()
-    .required("Roll number is required!")
-    .matches(/^\d{2}[A-Z]{2}\d{5}$/, "Please enter valid roll number!"),
-  passwd: yup.string().required("Password is required!"),
+    roll_number: yup
+        .string()
+        .required("Roll number is required!")
+        .matches(/^\d{2}[A-Z]{2}\d{5}$/, "Please enter valid roll number!"),
+    password: yup.string().required("Password is required!"),
 });
 
-interface FormProps {
-  onSubmit: () => void;
-}
+const RollForm: React.FC = () => {
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+    } = useForm<IFormInput>({ resolver: yupResolver(schema) });
 
-const RollForm: React.FC<FormProps> = ({ onSubmit }) => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<IFormInput>({ resolver: yupResolver(schema) });
-  const { user, updateState } = useContext(UserContext);
-  const [roll, setRoll] = useState(user?.roll || "");
-  const [password, setPasswd] = useState(user?.password || "");
-  const [securityQue, setSecurityQue] = useState(user?.securityQue || "");
+    const { setAuth } = useAppContext();
 
-  const handleFormSubmit = async (data: IFormInput) => {
-    // sessionStorage.setItem("passwd",data.passwd); // Hash the password, then store. Stored for use in next form
-    setRoll(data.roll_number);
-    setPasswd(data.passwd);
+    const getSecurityQuestion = async (data: IFormInput) => {
+        try {
+            const formData = new URLSearchParams();
+            formData.append("roll_number", data.roll_number);
+            formData.append("password", data.password);
 
-    try {
-      const formData = new URLSearchParams();
-      formData.append("roll_number", data.roll_number);
-      formData.append("password", data.passwd);
+            const res = await fetch(`${BACKEND_URL}/secret-question`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: formData,
+            });
 
-      const response = await fetch(`${BACKEND_URL}/secret-question`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData.toString(),
-      });
+            const resData = await res.json();
+            console.log(resData);
+            if (!res.ok) {
+                toast.error(resData.message);
+                if (res.status == 400) {
+                    return;
+                }
+                if (res.status == 401)
+                    if (resData.message == "Invalid Password")
+                        return setAuth((prev) => ({ ...prev, currentStep: 0 }));
+                if (res.status == 500) throw new Error(resData.message);
+            }
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-      }
+            sessionStorage.setItem("sessionToken", resData.SESSION_TOKEN);
 
-      const responseData = await response.json(); // returns session token and secret question
-      sessionStorage.setItem("SESSION_TOKEN", responseData.SESSION_TOKEN); //store session token
-      toast.success("Fetched security question!");
-      // sessionStorage.setItem("secret_question",responseData.secret_question)
-      setSecurityQue(responseData.SECRET_QUESTION);
-      updateState({ user: { ...user, roll, password, securityQue } });
-      onSubmit();
-    } catch (error) {
-      console.error("Error fetching secret question:", error); // Here handle error. Can show that ErrorPage.tsx
-      toast.error("Error fetching secret question!");
-    }
-    onSubmit();
-  };
+            toast.success("Fetched security question!");
+            setAuth((prev) => ({
+                user: {
+                    ...prev.user,
+                    password: data.password,
+                    rollNo: data.roll_number,
+                    securityQuestion: resData.SECRET_QUESTION,
+                    sessionToken: resData.SESSION_TOKEN,
+                },
+                currentStep: 1,
+            }));
+        } catch (error) {
+            console.log(error);
+        }
+    };
 
-  return (
-    <div className="roll-form">
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
-        <Toaster position="bottom-center" />
-        <div className="roll">
-          <label>Roll number: </label>
-          <input
-            type="text"
-            placeholder="Roll number for ERP"
-            className="input-box"
-            {...register("roll_number")}
-          />
-          {errors.roll_number && (
-            <p style={{ color: "red" }}>{errors.roll_number.message}</p>
-          )}
-        </div>
-        <div className="passwd">
-          <label>Password: </label>
-          <input
-            type="password"
-            placeholder="Password for ERP login"
-            className="input-box"
-            {...register("passwd")}
-          />
-          {errors.passwd && (
-            <p style={{ color: "red" }}>{errors.passwd.message}</p>
-          )}
-        </div>
-        <div className="que-btn">
-          <button type="submit" className="btn">
-            Get security question
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+    return (
+        <>
+            <form onSubmit={handleSubmit(getSecurityQuestion)}>
+                <div className="input-item">
+                    <label>Roll number: </label>
+                    <input
+                        type="text"
+                        placeholder="Roll number for ERP"
+                        className={
+                            errors.roll_number
+                                ? "input-box input-error"
+                                : "input-box"
+                        }
+                        {...register("roll_number")}
+                    />
+
+                    <span className="input-error-msg">
+                        {errors.roll_number?.message || "\u00A0"}
+                    </span>
+                </div>
+                <div className={`input-item`}>
+                    <label>Password: </label>
+                    <input
+                        type="password"
+                        placeholder="Password for ERP login"
+                        className={
+                            errors.password
+                                ? "input-box input-error"
+                                : "input-box"
+                        }
+                        {...register("password")}
+                    />
+
+                    <span className="input-error-msg">
+                        {errors.password?.message || "\u00A0"}
+                    </span>
+                </div>
+                <button type="submit" className="submit-button">
+                    {isSubmitting ? <Spinner /> : "Get security question"}
+                </button>
+            </form>
+        </>
+    );
 };
 
 export default RollForm;

@@ -1,0 +1,25 @@
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+html {
+    font-family: $metakgp-font;
+    font-size: 14px;
+    color: $font-color;
+
+    @media all and (max-width: 768px) {
+        font-size: 14px;
+    }
+}
+:root {
+    color-scheme: dark;
+    color: $font-color;
+    background-color: $metakgp-black;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
