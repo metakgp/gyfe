@@ -6,8 +6,6 @@ services:
         container_name: gyfe-api
         build: .
         restart: always
-        ports:
-            - 8000:8000
         networks:
             metaploy-network:
                 aliases:
