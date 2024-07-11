@@ -59,7 +59,7 @@ def get_secret_question():
         missing = check_missing_fields(all_fields)
         if len(missing) > 0:
             return ErpResponse(
-                False, f"Missing Fields: {", ".join(missing)}", status_code=400
+                False, f"Missing Fields: {', '.join(missing)}", status_code=400
             ).to_response()
 
         session = requests.Session()
@@ -94,7 +94,7 @@ def request_otp():
         missing = check_missing_fields(all_fields)
         if len(missing) > 0:
             return ErpResponse(
-                False, f"Missing Fields: {", ".join(missing)}", status_code=400
+                False, f"Missing Fields: {', '.join(missing)}", status_code=400
             ).to_response()
 
         login_details = erp.get_login_details(
@@ -133,7 +133,7 @@ def login():
         missing = check_missing_fields(all_fields)
         if len(missing) > 0:
             return ErpResponse(
-                False, f"Missing Fields: {", ".join(missing)}", status_code=400
+                False, f"Missing Fields: {', '.join(missing)}", status_code=400
             ).to_response()
 
         login_details = erp.get_login_details(
@@ -168,7 +168,7 @@ def elective(elective):
         missing = check_missing_fields(all_fields)
         if len(missing) > 0:
             return ErpResponse(
-                False, f"Missing Fields: {", ".join(missing)}", status_code=400
+                False, f"Missing Fields: {', '.join(missing)}", status_code=400
             ).to_response()
 
         DEPT = all_fields["roll_number"][2:4]
