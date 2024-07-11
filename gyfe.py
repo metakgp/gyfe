@@ -12,7 +12,7 @@ import json
 DEPT : str = None
 
 try:
-    import erpcreds
+    import erpcreds # type: ignore
     DEPT = erpcreds.ROLL_NUMBER[2:4]
     manual = False
 except:

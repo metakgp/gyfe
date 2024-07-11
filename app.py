@@ -55,6 +55,8 @@ def get_secret_question():
             "SECRET_QUESTION": secret_question,
             "SESSION_TOKEN": sessionToken
         }).to_response()
+    except erp.ErpLoginError as e:
+        return ErpResponse(False,str(e),status_code=401).to_response()
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
 
@@ -86,6 +88,8 @@ def request_otp():
                         login_details=login_details, log=True)
 
         return ErpResponse(True, message="OTP has been sent to your connected email accounts").to_response()
+    except erp.ErpLoginError as e:
+        return ErpResponse(False,str(e),status_code=401).to_response()
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
 
@@ -121,6 +125,8 @@ def login():
         return ErpResponse(True, data={
             "ssoToken": ssoToken
         }).to_response()
+    except erp.ErpLoginError as e:
+        return ErpResponse(False,str(e),status_code=401).to_response()
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
 
@@ -173,5 +179,7 @@ def elective(elective):
             download_name=f"${elective}_{ROLL_NUMBER}.csv"
         )
 
+    except erp.ErpLoginError as e:
+        return ErpResponse(False,str(e),status_code=401).to_response()
     except Exception as e:
         return ErpResponse(False, str(e), status_code=500).to_response()
