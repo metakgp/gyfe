@@ -1,4 +1,5 @@
 # scrape depth electives
+import uuid
 import requests
 import iitkgp_erp_login.erp as erp
 import iitkgp_erp_login.utils as erp_utils
@@ -8,15 +9,17 @@ import argparse
 from tabulate import tabulate
 import re
 import json
+from typing import Literal
 
-DEPT : str = None
+DEPT: str = None
 
 try:
-    import erpcreds # type: ignore
+    import erpcreds  # type: ignore
+
     DEPT = erpcreds.ROLL_NUMBER[2:4]
     manual = False
-except:
-    manual  = True
+except Exception:
+    manual = True
 
 
 def parse_args():
@@ -36,32 +39,30 @@ def parse_args():
 
 
 def find_core_courses(response: requests.Response) -> list[str]:
-    #Get code of core courses
-    core_course_codes = []
+    # Get code of core courses
     try:
         core_courses = response.json()
-    except:
+    except Exception:
         core_courses = {}
-    
-    for course in core_courses:
-        if course['subtype'] == 'Depth CORE':
-            core_course_codes.append(course['subno'])
-    
-    return core_course_codes
+
+    return [
+        course["subno"]
+        for course in core_courses
+        if course["subtype"] == "Depth CORE"
+    ]
 
 
 def find_all_unavailable_slots(unavailable_slots: list[str]) -> list[str]:
-    all_unavailable_slots :list = []
+    all_unavailable_slots: list = []
 
     # overlappings between lab and theory slots
     with open("overlaps.json", "r") as f:
         overlaps = json.load(f)
- 
+
     # some have more than 1 slot, they are separated
     for slot in unavailable_slots:
         if "," in slot:
-            for s in slot.split(","):
-                unavailable_slots.append(s.strip())
+            unavailable_slots.extend(s.strip() for s in slot.split(","))
             # remove the original slot
             unavailable_slots.remove(slot)
 
@@ -74,37 +75,38 @@ def find_all_unavailable_slots(unavailable_slots: list[str]) -> list[str]:
         # else, if there is F3 slot for example, add F2, F4 to unavailable slots, and vice versa similarly for whatever letters are there
         else:
             try:
-                all_unavailable_slots.append(slot[0] + "2")
-                all_unavailable_slots.append(slot[0] + "3")
-                all_unavailable_slots.append(slot[0] + "4")
-            except:
+                all_unavailable_slots.extend(
+                    (slot[0] + "2", slot[0] + "3", slot[0] + "4")
+                )
+            except Exception:
                 pass
 
             # check if there are any lab slots overlapping with it
-            for parent, slots in overlaps.items():
-                if slot in slots:
-                    all_unavailable_slots.append(parent)
-
-    # remove duplicates if any
-    all_unavailable_slots = list(set(all_unavailable_slots))
-
-    return all_unavailable_slots
+            all_unavailable_slots.extend(
+                parent for parent, slots in overlaps.items() if slot in slots
+            )
+    return list(set(all_unavailable_slots))
 
 
-def save_depths(response :tuple, create_file:bool =True):
+def save_depths(
+    response: tuple,
+    save_file: bool = True,
+    file_type: Literal["txt", "csv", "xlsx"] = "txt",
+):
     """
     Workflow:
             - Check DeptWise timetable and scrape subjects
             - Make sure those subjects are not overlapping with core courses
                     - Subtask: find core courses
             - Go to Deptwise subject list to additionally scrape prof name and slot
-    
+
     Parameters:
         response (tuple): Tuple containing three elements of requests.Response objects.
-        create_file (bool): Flag to create a file or return the data as a string. Default is True.
-        
+        save_file (bool): Flag to create a file or return the data. Default is True.
+        file_type (Literal["txt", "csv", "xlsx"]): Flag to set the file type. Default is txt
     Returns:
-        None or str: If create_file is False, returns the CSV string of available depth electives.
+        None or str: If save_file is False, returns the string of available depth electives.
+        For xlsx, reutrns the file name.
     """
 
     soup = bs(response[0].text, "html.parser")
@@ -127,7 +129,7 @@ def save_depths(response :tuple, create_file:bool =True):
             # matches = re.findall(pattern, str(a_tag))
             try:
                 matches = a_tag.find_all(string=True)
-            except:
+            except Exception:
                 matches = []
             if len(matches) > 1:
                 course_code = matches[0]
@@ -135,40 +137,40 @@ def save_depths(response :tuple, create_file:bool =True):
 
     data = {"Course Code": depth_course_codes}
     df_depths = pd.DataFrame(data=data)
-    df_depths.drop_duplicates(subset=["Course Code"], inplace=True)
+    df_depths = df_depths.drop_duplicates(subset=["Course Code"])
 
     # * Get code of core courses
     core_course_codes = find_core_courses(response[2])
 
-    #* Remove core courses from depths
+    # * Remove core courses from depths
     df_depths = df_depths[~df_depths["Course Code"].isin(core_course_codes)]
 
     # * Now get prof names and slots
     soup = bs(response[1].text, "html.parser")
 
-    #* Extract course information from the table rows
+    # * Extract course information from the table rows
     courses = []
     parentTable = soup.find("table", {"id": "disptab"})
     rows = parentTable.find_all("tr")
 
     try:
         cc = course_code.strip()
-    except:
+    except Exception:
         cc = None
-    
+
     for row in rows[1:]:
         if "bgcolor" in row.attrs:
             continue
         cells = row.find_all("td")
         course = {
-                "Course Code": cells[0].text.strip() if len(cells) > 0 else None,
-                "Name": cells[1].text.strip() if len(cells) > 1 else None,
-                "Faculty": cells[2].text.strip() if len(cells) > 2 else None,
-                "LTP": cells[3].text.strip() if len(cells) > 3 else None,
-                "Slot": cells[5].text.strip() if len(cells) > 5 else None,
-                "Room": cells[6].text.strip() if len(cells) > 6 else None,
-                "Minor": "-"
-            }
+            "Course Code": cells[0].text.strip() if len(cells) > 0 else None,
+            "Name": cells[1].text.strip() if len(cells) > 1 else None,
+            "Faculty": cells[2].text.strip() if len(cells) > 2 else None,
+            "LTP": cells[3].text.strip() if len(cells) > 3 else None,
+            "Slot": cells[5].text.strip() if len(cells) > 5 else None,
+            "Room": cells[6].text.strip() if len(cells) > 6 else None,
+            "Minor": "-",
+        }
 
         # adding which minor the course helps you get
         course_list = list(minors.keys())
@@ -199,15 +201,31 @@ def save_depths(response :tuple, create_file:bool =True):
     df_all.set_index("Course Code", inplace=True)
 
     # save available electives
-    if create_file:
+    if file_type == "xlsx":
+        filename = uuid.uuid4().hex
+        writer = pd.ExcelWriter(f"{filename}.xlsx", engine="xlsxwriter")
+        df_all.to_excel(writer, sheet_name="Sheet1")
+        writer.close()
+        return filename
+
+    elif save_file and file_type == "txt":
         with open("available_depths.txt", "w") as f:
             f.write(tabulate(df_all, headers="keys", tablefmt="fancy_grid"))
-        print("Available depths saved to available_depths.txt")
+        print("Available electives saved to available_depths.txt")
+        return
+
     else:
+        if save_file:
+            df_all.to_csv(f"available_depths.csv", index=False)
+            return
         return df_all.to_csv(index=False)
 
 
-def save_breadths(response :tuple, create_file:bool =True):
+def save_breadths(
+    response: tuple,
+    save_file: bool = True,
+    file_type: Literal["txt", "csv", "xlsx"] = "txt",
+):
     """
     Workflow:
             - Check breadth list to get all breadth electives
@@ -215,10 +233,11 @@ def save_breadths(response :tuple, create_file:bool =True):
 
     Parameters:
         response (tuple): Tuple containing three elements of requests.Response objects.
-        create_file (bool): Flag to create a file or return the data as a string. Default is True.
-        
+        save_file (bool): Flag to create a file or return the data. Default is True.
+        file_type (Literal["txt", "csv", "xlsx"]): Flag to set the file type. Default is txt
     Returns:
-        None or str: If create_file is False, returns the CSV string of available breadth electives.
+        None or str: If save_file is False, returns the string of available breadth electives.
+        For xlsx, reutrns the file name.
     """
 
     soup = bs(response[0].text, "html.parser")
@@ -243,13 +262,11 @@ def save_breadths(response :tuple, create_file:bool =True):
 
             course["LTP"] = cells[2].text.strip()
 
-            prereq_str = ""
-            for i in range(3, 6):
-                if cells[i].text.strip() != "":
-                    prereq_str += cells[i].text.strip() + ", "
-
-            # remove trailing comma and space
-            if prereq_str != "":
+            if prereq_str := "".join(
+                cells[i].text.strip() + ", "
+                for i in range(3, 6)
+                if cells[i].text.strip() != ""
+            ):
                 course["Prerequisites"] = prereq_str[:-2]
             else:
                 course["Prerequisites"] = "No prerequisites"
@@ -305,7 +322,7 @@ def save_breadths(response :tuple, create_file:bool =True):
         course["Course Code"] = cells[0].text
         try:
             course["Slot"] = cells[5].text
-        except:
+        except Exception:
             course["Slot"] = None
         courses.append(course)
 
@@ -322,37 +339,58 @@ def save_breadths(response :tuple, create_file:bool =True):
     df = df[~df["Slot"].str.contains("|".join(all_unavailable_slots), na=False)]
     df.set_index("Course Code", inplace=True)
     # save available electives
-    if create_file:
+
+    if file_type == "xlsx":
+        file_name = uuid.uuid4().hex
+        writer = pd.ExcelWriter(f"{file_name}.xlsx", engine="xlsxwriter")
+        df.to_excel(writer, sheet_name="Sheet1")
+        writer.close()
+        return file_name
+
+    elif save_file and file_type == "txt":
         with open("available_breadths.txt", "w") as f:
             f.write(tabulate(df, headers="keys", tablefmt="fancy_grid"))
         print("Available electives saved to available_breadths.txt")
+        return
     else:
         return df.to_csv(index=False)
 
 
-def fetch_response(acad_session: str, semester: str, year: int, elective: str, DEPT: str, ssoToken: str) -> tuple[requests.Response, ...]:
+def fetch_response(
+    acad_session: str, semester: str, year: int, elective: str, DEPT: str, ssoToken: str
+) -> tuple[requests.Response, ...]:
     headers = {
         "timeout": "20",
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
     }
 
     session = requests.Session()
-    erp_utils.set_cookie(session, 'ssoToken', ssoToken)
+    erp_utils.set_cookie(session, "ssoToken", ssoToken)
 
-    TIMETABLE_URL: str = f'https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={acad_session}&index={year}&semester={semester}&dept={DEPT}'
+    TIMETABLE_URL: str = (
+        f"https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={acad_session}&index={year}&semester={semester}&dept={DEPT}"
+    )
     ERP_ELECTIVES_URL: str = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"
-    
+
     if elective == "depth":
-        SUBJ_LIST_URL: str = f'https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={acad_session}&for_semester={semester}&dept={DEPT}'
+        SUBJ_LIST_URL: str = (
+            f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={acad_session}&for_semester={semester}&dept={DEPT}"
+        )
         TIMETABLE_RESP: requests.Response = session.get(TIMETABLE_URL, headers=headers)
         ERP_ELECTIVES_RESP: requests.Response = None
     elif elective == "breadth":
-        SUBJ_LIST_URL: str = f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
-        ERP_ELECTIVES_RESP: requests.Response = session.get(ERP_ELECTIVES_URL, headers=headers)
+        SUBJ_LIST_URL: str = (
+            f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
+        )
+        ERP_ELECTIVES_RESP: requests.Response = session.get(
+            ERP_ELECTIVES_URL, headers=headers
+        )
         TIMETABLE_RESP: requests.Response = None
-    
+
     sem: int = 2 * year - 1 if semester == "AUTUMN" else 2 * year
-    COURSES_URL: str = f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={sem}"
+    COURSES_URL: str = (
+        f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={sem}"
+    )
 
     SUBJ_LIST_RESP: requests.Response = session.get(SUBJ_LIST_URL, headers=headers)
     COURSES_RESP: requests.Response = session.post(COURSES_URL, headers=headers)
@@ -365,7 +403,7 @@ def fetch_response(acad_session: str, semester: str, year: int, elective: str, D
 
 def main():
     args = parse_args()
-    
+
     session = requests.Session()
     headers = {
         "timeout": "20",
@@ -374,59 +412,67 @@ def main():
 
     if manual:
         _, ssoToken = erp.login(
+            headers, session, LOGGING=True, SESSION_STORAGE_FILE=".session"
+        )
+        DEPT = (
+            erp.ROLL_NUMBER[2:4]
+            if erp.ROLL_NUMBER
+            else input("Enter your department code: ")
+        )
+    elif args.notp:
+        _, ssoToken = erp.login(
             headers,
             session,
+            ERPCREDS=erpcreds,
             LOGGING=True,
-            SESSION_STORAGE_FILE=".session"
+            SESSION_STORAGE_FILE=".session",
         )
-        if erp.ROLL_NUMBER:
-            DEPT = erp.ROLL_NUMBER[2:4]
-        else:
-            DEPT = input("Enter your department code: ")
     else:
-        if args.notp:
-            _, ssoToken = erp.login(
-                headers,
-                session,
-                ERPCREDS=erpcreds,
-                LOGGING=True,
-                SESSION_STORAGE_FILE=".session",
-            )
-        else:
-            _, ssoToken = erp.login(
-                headers,
-                session,
-                ERPCREDS=erpcreds,
-                OTP_CHECK_INTERVAL=2,
-                LOGGING=True,
-                SESSION_STORAGE_FILE=".session",
-            )
+        _, ssoToken = erp.login(
+            headers,
+            session,
+            ERPCREDS=erpcreds,
+            OTP_CHECK_INTERVAL=2,
+            LOGGING=True,
+            SESSION_STORAGE_FILE=".session",
+        )
 
     acad_session = args.session
     semester = args.semester
-    year = args.year -1
+    year = args.year - 1
     elective = args.electives
 
     if args.electives == "breadth":
-        responses = fetch_response(acad_session, semester, year, elective, DEPT, ssoToken)
+        responses = fetch_response(
+            acad_session, semester, year, elective, DEPT, ssoToken
+        )
         save_breadths(responses)
         depth = input("Do you want to get depth also? (y/N) [Default: no]: ").lower()
-        if depth == 'y':
+        if depth == "y":
             elective = "depth"
-            responses = fetch_response(acad_session, semester, year, elective, DEPT, ssoToken)
+            responses = fetch_response(
+                acad_session, semester, year, elective, DEPT, ssoToken
+            )
             save_depths(responses)
 
     elif args.electives == "depth":
-        responses = fetch_response(acad_session, semester, year, elective, DEPT, ssoToken)
+        responses = fetch_response(
+            acad_session, semester, year, elective, DEPT, ssoToken
+        )
         save_depths(responses)
-        breadth = input("Do you want to get breadth also? (y/N) [Default: no]: ").lower()
-        if breadth == 'y':
+        breadth = input(
+            "Do you want to get breadth also? (y/N) [Default: no]: "
+        ).lower()
+        if breadth == "y":
             elective = "breadth"
-            responses = fetch_response(acad_session, semester, year, elective, DEPT, ssoToken)
+            responses = fetch_response(
+                acad_session, semester, year, elective, DEPT, ssoToken
+            )
             save_breadths(responses)
 
     else:
         print("Invalid electives type. Choose from 'breadth' or 'depth'")
+
 
 if __name__ == "__main__":
     main()
