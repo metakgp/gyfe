@@ -199,9 +199,9 @@ def elective(elective):
             ).to_response()
 
         if elective == "breadth":
-            file_path = gyfe.save_breadths(responses, False, filetype="xlsx")
+            file_path = gyfe.save_breadths(responses, False, file_type="xlsx")
         elif elective == "depth":
-            file_path = gyfe.save_depths(responses, False, filetype="xlsx")
+            file_path = gyfe.save_depths(responses, False, file_type="xlsx")
 
         file_path = f"{file_path}.xlsx"
 
