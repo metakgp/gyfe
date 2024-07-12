@@ -177,15 +177,15 @@ def elective(elective):
         if current_month in [1, 2, 3, 4, 5, 6]:
             semester = "SPRING"
             acad_session = f"{str(current_year - 1)}-{str(current_year)}"
-            year = current_year - int("20" + all_fields["roll_number"][:2]) - 1
+            year = current_year - int("20" + all_fields["roll_number"][:2])
         elif current_month in [7, 8, 9, 10, 11, 12]:
             semester = "AUTUMN"
             acad_session = f"{str(current_year)}-{str(current_year + 1)}"
-            year = current_year - int("20" + all_fields["roll_number"][:2])
+            year = current_year - int("20" + all_fields["roll_number"][:2]) +1
 
         semester = data.get("semester") or semester
         acad_session = data.get("session") or acad_session
-        year = int(data.get("year")) - 1 if data.get("year") else year
+        year = int(data.get("year")) if data.get("year") else year
 
         responses = gyfe.fetch_response(
             acad_session, semester, year, elective, DEPT, all_fields["ssoToken"]

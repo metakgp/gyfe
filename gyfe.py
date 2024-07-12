@@ -439,7 +439,7 @@ def main():
 
     acad_session = args.session
     semester = args.semester
-    year = args.year - 1
+    year = args.year 
     elective = args.electives
 
     if args.electives == "breadth":
