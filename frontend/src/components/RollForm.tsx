@@ -43,7 +43,7 @@ const RollForm: React.FC = () => {
             });
 
             const resData = await res.json();
-            console.log(resData);
+            
             if (!res.ok) {
                 toast.error(resData.message);
                 if (res.status == 400) {
