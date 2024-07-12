@@ -9,6 +9,7 @@ const Electives: React.FC = () => {
     const getElective = async (elective: string) => {
         const formData = new URLSearchParams();
         formData.append("roll_number", user.rollNo);
+        const toastId = toast.loading(`Saving available ${elective} electives`);
 
         try {
             const res = await fetch(`${BACKEND_URL}/elective/${elective}`, {
@@ -22,6 +23,7 @@ const Electives: React.FC = () => {
 
             if (!res.ok) {
                 toast.error("Some Error Occured. Please Try Again.");
+                toast.dismiss(toastId);
                 return;
             }
 
@@ -35,9 +37,12 @@ const Electives: React.FC = () => {
             document.body.appendChild(a);
             a.click();
             a.remove();
+            toast.success(`Saved available ${elective} electives`);
         } catch (error) {
             toast.error(`Error fetching ${elective} electives!`);
             console.error("Error fetching breadth electives:", error);
+        } finally {
+            toast.dismiss(toastId);
         }
     };
 

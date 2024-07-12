@@ -8,6 +8,11 @@
 @import "./footer.scss";
 @import "./modal.scss";
 
+body{
+    background: $gradient;
+    min-height: 100vh;
+}
+
 #root {
     max-width: 1280px;
     height: 100%;
@@ -21,6 +26,7 @@
         max-width: 25rem;
         margin: auto;
         border-radius: 2rem;
+        box-shadow: 0 3px 7px black;
     }
 
     .input-item {
@@ -88,8 +94,12 @@
             border: none;
             font-size: 1.2rem;
             border-radius: 1rem;
+            box-shadow: 0 5px 5px -6px black;
             cursor: pointer;
             width: 100%;
+            &:hover{
+                background-color: $accent-color-dark;
+            }
         }
     }
 
@@ -110,6 +120,7 @@
             border-radius: 1rem;
             max-width: 20rem;
             @include flexbox(column, center, center, 0);
+            box-shadow: 0 2px 7px black;
         }
         .download-button {
             padding: 0.75rem 1rem;
@@ -120,6 +131,9 @@
             cursor: pointer;
             width: 100%;
             margin-top: 2rem;
+            &:hover{
+                background-color: $accent-color-dark;
+            }
         }
     }
 }
