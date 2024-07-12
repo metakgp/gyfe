@@ -22,11 +22,11 @@ body{
     @include flexbox(column, space-between, center, 2rem);
     form {
         padding: 2rem;
-        background-color: #0005;
+        background-color: #181827;
         max-width: 25rem;
         margin: auto;
         border-radius: 2rem;
-        box-shadow: 0 3px 7px black;
+        // box-shadow: 0 3px 7px black;
     }
 
     .input-item {
@@ -45,14 +45,14 @@ body{
             border: 2px solid $font-color-darker;
             border: none;
             &:focus {
-                outline: 2px solid $accent-color-lighter;
+                outline: 2px solid #4a9d9c;
             }
             &:disabled {
                 background: darken($surface-1, 5);
             }
         }
         .input-error {
-            outline: 2px solid $error-color;
+            outline: 1px solid $error-color;
         }
         label {
             font-weight: 500;
@@ -72,14 +72,14 @@ body{
         padding: 1rem;
         border: none;
         border-radius: 0.75rem;
-        background: $accent-color;
+        background: $green-gradient;
         color: $font-color-darker;
         outline: none;
         font-weight: bold;
         box-shadow: 0 5px 5px -6px black;
         cursor: pointer;
         &:focus {
-            outline: 2px solid $accent-color-lighter;
+            outline: 2px solid #4a9d9c;
         }
     }
 
@@ -90,15 +90,17 @@ body{
         .help-button,
         .logout-button {
             padding: 0.75rem 1rem;
-            background-color: $accent-color;
+            background-color: $green;
             border: none;
             font-size: 1.2rem;
+            color: $font-color-darker;
+            font-weight: bold;
             border-radius: 1rem;
             box-shadow: 0 5px 5px -6px black;
             cursor: pointer;
             width: 100%;
             &:hover{
-                background-color: $accent-color-dark;
+                background-color: $green-hover;
             }
         }
     }
@@ -116,7 +118,7 @@ body{
         }
         .elective-item {
             padding: 1rem;
-            background-color: #0005;
+            background-color: #181827;
             border-radius: 1rem;
             max-width: 20rem;
             @include flexbox(column, center, center, 0);
@@ -124,15 +126,17 @@ body{
         }
         .download-button {
             padding: 0.75rem 1rem;
-            background-color: $accent-color;
+            background: $green-gradient;
             border: none;
             font-size: 1.2rem;
+            font-weight: bold;
+            color: $font-color-darker;
             border-radius: 1rem;
             cursor: pointer;
             width: 100%;
             margin-top: 2rem;
-            &:hover{
-                background-color: $accent-color-dark;
+            &:focus {
+                outline: 1px solid #4a9d9c;
             }
         }
     }

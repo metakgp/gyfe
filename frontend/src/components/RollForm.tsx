@@ -110,7 +110,7 @@ const RollForm: React.FC = () => {
                         {errors.password?.message || "\u00A0"}
                     </span>
                 </div>
-                <button type="submit" className="submit-button">
+                <button type="submit" className="submit-button" disabled={isSubmitting}>
                     {isSubmitting ? <Spinner /> : "Get security question"}
                 </button>
             </form>

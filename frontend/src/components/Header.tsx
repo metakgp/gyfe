@@ -8,7 +8,7 @@ const Header: React.FC = () => {
                 <img src={metakgpLogo} />
             </div>
             <h1 className="header-title">
-                Get Your Freaking <span id="word">Electives</span>
+                Get Your Freaking <span style={{marginTop: "9px", display: "block"}} id="word">Electives</span>
             </h1>
         </div>
     );

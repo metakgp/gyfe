@@ -6,4 +6,11 @@ footer {
     font-weight: 800;
     font-size: 1.2rem;
   }
+  a {
+    text-decoration: none;
+    color: $link;
+    &:hover{
+      color: $link-hover;
+    }
+  }
 }
