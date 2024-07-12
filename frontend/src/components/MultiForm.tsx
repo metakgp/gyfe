@@ -7,7 +7,6 @@ import ErrorPage from "./ErrorPage";
 
 const MultiForm: React.FC = () => {
     const { currentStep, user } = useAppContext();
-    console.log({ currentStep, user });
     if (currentStep == 2 && user.sessionToken && user.ssoToken)
         return <Electives />;
     if (currentStep == 1 && user.sessionToken && user.securityQuestion)
