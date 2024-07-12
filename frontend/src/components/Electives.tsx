@@ -22,7 +22,6 @@ const Electives: React.FC = () => {
 
             if (!res.ok) {
                 toast.error("Some Error Occured. Please Try Again.");
-                console.log(res.statusText);
                 return;
             }
 

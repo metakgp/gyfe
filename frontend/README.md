@@ -1,30 +1,27 @@
-# React + TypeScript + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Get Your Freaking Electives
 
-Currently, two official plugins are available:
+GYFE simplifies course selection by providing available depth and breadth electives for the upcoming semester.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Running locally
 
-## Expanding the ESLint configuration
+First install [nodejs](https://nodejs.org/en/download/package-manager). Then install `pnpm` by running `npm install -g pnpm`. 
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+Then follow the given steps to launch the frontend:
 
-- Configure the top-level `parserOptions` property like this:
+1. Clone the repository
+   ```sh
+   git clone https://github.com/metakgp/gyfe.git
+   ```
+2. Install dependencies
+   ```sh
+   cd gyfe/frontend
+   pnpm install
+   ```
+3. Start the server
+   ```sh
+   pnpm dev
+   ```
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
-```
-
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+This setup will launch the frontend. To start backend server also, please follow the instructions [here](https://github.com/metakgp/gyfe/blob/main/README.md)
