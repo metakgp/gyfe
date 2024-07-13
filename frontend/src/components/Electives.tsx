@@ -58,8 +58,8 @@ const Electives: React.FC = () => {
         <div className="electives-container">
             <h2>Download Electives</h2>
             <p>
-                Below are the filtered electives that are available as per your
-                slots
+                Below are the depth and breadth electives available for you for
+                subject registration
             </p>
             <div className="electives">
                 <button
