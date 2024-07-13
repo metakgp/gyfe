@@ -14,7 +14,8 @@ interface IFormInput {
 const schema = yup.object().shape({
     roll_number: yup
         .string()
-        .required("Roll number is required!"),
+        .required("Roll number is required!")
+        .matches(/^\d{2}[A-Z]{2}[A-Z0-9]{5}$/, "Please enter valid roll number!"),
     password: yup.string().required("Password is required!"),
 });
 
