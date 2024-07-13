@@ -24,11 +24,13 @@ const SecurityQueForm: React.FC = () => {
         handleSubmit,
         getValues,
         trigger,
-        formState: { errors, isLoading },
+        formState: { errors },
     } = useForm<IFormInput>({ resolver: yupResolver(schema) });
     const { user, setAuth } = useAppContext();
 
     const [otpRequested, setOtpRequested] = useState(false);
+    const [loadingOTP, setLoadingOTP] = useState(false); 
+    const [loadingLogin, setLoadingLogin] = useState(false); 
 
     const getOTP = async () => {
         const isValid = await trigger("securityAnswer");
@@ -41,6 +43,7 @@ const SecurityQueForm: React.FC = () => {
         formData.append("secret_answer", securityAns);
 
         try {
+            setLoadingOTP(true);
             const res = await fetch(`${BACKEND_URL}/request-otp`, {
                 method: "POST",
                 headers: {
@@ -75,6 +78,8 @@ const SecurityQueForm: React.FC = () => {
         } catch (error) {
             console.log(error);
             setOtpRequested(false);
+        } finally {
+            setLoadingOTP(false); 
         }
     };
 
@@ -89,6 +94,7 @@ const SecurityQueForm: React.FC = () => {
         login_data.append("otp", otp);
 
         try {
+            setLoadingLogin(true);
             const res = await fetch(`${BACKEND_URL}/login`, {
                 method: "POST",
                 headers: {
@@ -122,6 +128,8 @@ const SecurityQueForm: React.FC = () => {
             toast.success("Successfully logged in to ERP!");
         } catch (error) {
             console.error(error);
+        } finally {
+            setLoadingLogin(false); 
         }
     };
 
@@ -171,13 +179,11 @@ const SecurityQueForm: React.FC = () => {
                 </span>
             </div>
             <div>
-                <button className="submit-button" type="submit">
-                    {isLoading ? (
+                <button className="submit-button" type="submit" disabled={loadingOTP || loadingLogin}>
+                {loadingOTP || loadingLogin ? (
                         <Spinner />
-                    ) : otpRequested ? (
-                        "Login"
                     ) : (
-                        "Send OTP"
+                        otpRequested ? "Login" : "Send OTP"
                     )}
                 </button>
             </div>
