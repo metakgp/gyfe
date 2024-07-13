@@ -6,6 +6,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { BACKEND_URL } from "./url";
 import { toast } from "react-hot-toast";
 import { useAppContext } from "../AppContext/AppContext";
+import Spinner from "./Spinner";
 
 const schema = yup.object().shape({
     securityAnswer: yup.string().required("Security answer is required!"),
@@ -23,7 +24,7 @@ const SecurityQueForm: React.FC = () => {
         handleSubmit,
         getValues,
         trigger,
-        formState: { errors },
+        formState: { errors, isLoading },
     } = useForm<IFormInput>({ resolver: yupResolver(schema) });
     const { user, setAuth } = useAppContext();
 
@@ -107,6 +108,8 @@ const SecurityQueForm: React.FC = () => {
                 if (res.status == 401)
                     if (resData.message == "Invalid Password")
                         return setAuth((prev) => ({ ...prev, currentStep: 0 }));
+                if (resData.message == "Invalid OTP")
+                    return setAuth((prev) => ({ ...prev, currentStep: 1 }));
                 if (res.status == 500) throw new Error(resData.message);
             }
 
@@ -169,7 +172,13 @@ const SecurityQueForm: React.FC = () => {
             </div>
             <div>
                 <button className="submit-button" type="submit">
-                    {otpRequested ? "Login" : "Send OTP"}
+                    {isLoading ? (
+                        <Spinner />
+                    ) : otpRequested ? (
+                        "Login"
+                    ) : (
+                        "Send OTP"
+                    )}
                 </button>
             </div>
         </form>

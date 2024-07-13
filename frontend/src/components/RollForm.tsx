@@ -56,6 +56,7 @@ const RollForm: React.FC = () => {
             }
 
             sessionStorage.setItem("sessionToken", resData.SESSION_TOKEN);
+            sessionStorage.setItem("rollNo", data.roll_number);
 
             toast.success("Fetched security question!");
             setAuth((prev) => ({
