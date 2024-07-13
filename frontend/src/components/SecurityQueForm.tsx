@@ -130,7 +130,7 @@ const SecurityQueForm: React.FC = () => {
     return (
         <form className="login-form" onSubmit={handleSubmit(onSubmit)}>
             <div className="input-item">
-                <label>{user.securityQuestion || "\u00A0"}</label>
+                <label>{user.securityQuestion || "\u00A0"} :</label>
                 <input
                     type="password"
                     placeholder="Enter your answer"
@@ -146,7 +146,7 @@ const SecurityQueForm: React.FC = () => {
                 </span>
             </div>
             <div className="input-item">
-                <label>Enter OTP</label>
+                <label>Enter OTP :</label>
                 <input
                     type="text"
                     placeholder="Enter OTP sent to email"

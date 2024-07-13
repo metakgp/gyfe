@@ -7,9 +7,10 @@ export default function Spinner(props: SVGProps<SVGSVGElement>) {
       width="1em"
       height="1em"
       viewBox="0 0 24 24"
+      className="spinner"
       {...props}
     >
-      <g stroke="currentColor">
+      <g stroke="white">
         <circle
           cx={12}
           cy={12}

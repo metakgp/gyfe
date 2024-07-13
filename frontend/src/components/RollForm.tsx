@@ -77,7 +77,7 @@ const RollForm: React.FC = () => {
         <>
             <form onSubmit={handleSubmit(getSecurityQuestion)}>
                 <div className="input-item">
-                    <label>Roll number: </label>
+                    <label>Roll number :</label>
                     <input
                         type="text"
                         placeholder="Roll number for ERP"
@@ -94,7 +94,7 @@ const RollForm: React.FC = () => {
                     </span>
                 </div>
                 <div className={`input-item`}>
-                    <label>Password: </label>
+                    <label>Password :</label>
                     <input
                         type="password"
                         placeholder="Password for ERP login"

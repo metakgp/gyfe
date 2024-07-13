@@ -11,22 +11,3 @@
   gap: $gap;
 }
 
-@mixin custom-btn {
-  padding: 0.5em 2em;
-  border-radius: 10px;
-  color: $font-color;
-  font-family: $metakgp-font;
-  font-size: 1.2em;
-  border: 1px solid $font-color-darker;
-}
-
-@mixin about-btn {
-  padding: 0.5em 1.4em;
-  border-radius: 10px;
-  color: $font-color;
-  font-family: $metakgp-font;
-  font-size: 1.2em;
-  font-weight: 600;
-  background-color: $purple;
-  border: 1px solid $font-color-darker;
-}

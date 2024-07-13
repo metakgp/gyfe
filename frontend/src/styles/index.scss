@@ -8,118 +8,128 @@
 @import "./footer.scss";
 @import "./modal.scss";
 
-#root {
-    max-width: 1280px;
+main {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    align-items: center;
+    padding: 1.5rem;
+    position: relative;
+}
+
+aside img {
+    display: block;
+    width: 100%;
+    max-height: 600px;
+    height: auto;
+}
+@media screen and (max-width: 900px) {
+    aside {
+        display: none;
+    }
+}
+.circle {
+    pointer-events: none;
+    width: 0px;
+    height: 0px;
+    border-radius: 50%;
+    position: absolute;
+}
+.circle-container {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    z-index: -10;
+}
+
+#wrapper {
     height: 100%;
-    margin: 0 auto;
-    padding: 2rem;
+    width: 100%;
+    border-radius: 10px;
+    padding: 1rem;
+    z-index: 20;
+    border-radius: 24px;
+    border: 2px solid #fff;
+    background: #ffffff49;
+    backdrop-filter: blur(10px);
+    display: flex;
     text-align: center;
-    @include flexbox(column, space-between, center, 2rem);
-    form {
-        padding: 2rem;
-        background-color: #0005;
-        max-width: 25rem;
+    align-items: center;
+    justify-content: space-evenly;
+    gap: 2rem;
+    overflow: auto;
+}
+.wrapper-item {
+    * {
+        color: #000;
+    }
+    #wrapped {
+        max-width: 20rem;
         margin: auto;
-        border-radius: 2rem;
     }
-
-    .input-item {
-        @include flexbox(column, center, center, 0.2rem);
-        position: relative;
-        margin-bottom: 1.5rem;
-        font-size: 1.25rem;
-        .input-box {
-            font-size: 1.25rem;
-            width: 100%;
-            padding: 1rem;
-            border-radius: 0.75rem;
-            box-shadow: none;
-            outline: none;
-            background-color: #0005;
-            border: 2px solid $font-color-darker;
-            border: none;
-            &:focus {
-                outline: 2px solid $accent-color-lighter;
-            }
-            &:disabled {
-                background: darken($surface-1, 5);
-            }
-        }
-        .input-error {
-            outline: 2px solid $error-color;
-        }
-        label {
-            font-weight: 500;
-        }
-        .input-error-msg {
-            position: absolute;
-            font-size: 1rem;
-            top: 100%;
-            color: $error-color;
-            font-weight: 600;
-        }
-    }
-    .submit-button {
-        margin-top: 1rem;
+}
+.input-item {
+    @include flexbox(column, center, center, 0.2rem);
+    position: relative;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+    .input-box {
+        font-size: 1.1rem;
         width: 100%;
-        font-size: 1.25rem;
-        padding: 1rem;
-        border: none;
+        padding: 0.5rem 1rem;
         border-radius: 0.75rem;
-        background: $accent-color;
-        color: $font-color-darker;
+        box-shadow: none;
         outline: none;
-        font-weight: bold;
-        box-shadow: 0 5px 5px -6px black;
-        cursor: pointer;
-        &:focus {
-            outline: 2px solid $accent-color-lighter;
+        background-color: white;
+        border: none;
+        box-shadow: 0 0 20px -2px #0000003b;
+        &:disabled {
+            background-color: #aaa;
         }
     }
+    .input-error {
+        outline: 1px solid $error-color;
+    }
+    label {
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .input-error-msg {
+        position: absolute;
+        font-size: 1rem;
+        top: 100%;
+        color: $error-color;
+        font-weight: 600;
+    }
+}
+.submit-button,
+.download-button {
+    border: none;
+    background-color: #00ba29;
+    padding: 0.5rem 1rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    width: 100%;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    margin-inline: auto;
+}
 
-    .help {
-        margin-top: 2rem;
+.electives-container {
+    h2 {
+        font-size: 2rem;
         margin-bottom: 1rem;
-        @include flexbox(row, center, center, 1rem);
-        .help-button,
-        .logout-button {
-            padding: 0.75rem 1rem;
-            background-color: $accent-color;
-            border: none;
-            font-size: 1.2rem;
-            border-radius: 1rem;
-            cursor: pointer;
-            width: 100%;
-        }
     }
-
-    .electives-container {
-        h2 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-        h4 {
-            font-size: 1.5rem;
-        }
-        .electives {
-            @include flexbox(column, center, center, 1rem);
-        }
-        .elective-item {
-            padding: 1rem;
-            background-color: #0005;
-            border-radius: 1rem;
-            max-width: 20rem;
-            @include flexbox(column, center, center, 0);
-        }
-        .download-button {
-            padding: 0.75rem 1rem;
-            background-color: $accent-color;
-            border: none;
-            font-size: 1.2rem;
-            border-radius: 1rem;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 2rem;
-        }
+    p {
+        font-size: 1.1rem;
+    }
+    .electives {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1rem;
     }
 }

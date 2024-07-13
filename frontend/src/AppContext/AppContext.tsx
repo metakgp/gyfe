@@ -22,12 +22,12 @@ interface IContext {
 }
 
 const DEFAULT_USER: IUser = {
-    rollNo: "",
+    rollNo: sessionStorage.getItem("rollNo") || "",
     password: "",
     securityQuestion: "",
     securityAnswer: "",
-    ssoToken: sessionStorage.getItem("ssoToken"),
-    sessionToken: sessionStorage.getItem("sessionToken"),
+    ssoToken: sessionStorage.getItem("ssoToken") || "",
+    sessionToken: sessionStorage.getItem("sessionToken") || "",
 };
 
 export const AppContext = createContext<IContext | null>(null);
@@ -35,7 +35,7 @@ export const AppContext = createContext<IContext | null>(null);
 export const AppProvider: React.FC<IProps> = ({ children }) => {
     const [authState, setAuth] = useState<IAuth>({
         user: DEFAULT_USER,
-        currentStep: 0,
+        currentStep: DEFAULT_USER.ssoToken ? 2 : 0,
     });
 
     const logout = () => {

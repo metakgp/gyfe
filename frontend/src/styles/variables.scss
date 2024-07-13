@@ -1,12 +1,7 @@
-$metakgp-black: #242424;
-$font-color: #fefefe;
-$font-color-darker: #d3d1d1;
+$font-color: #f0f0f0;
+$surface-1: lighten(black, 15);
+$error-color: #e65f3f;
+
+// Fonts
 $metakgp-font: "Titillium Web", sans-serif;
 $cursive-font: "Kalam", sans-serif;
-$accent-color: #1453b8;
-$accent-color-lighter: #4786eb;
-$accent-color-darker: #0f3e8a;
-$accent-color-disabled: #3d5c8f;
-$surface-1: #413e3f;
-$surface-2: #4b4b4b;
-$error-color: crimson;

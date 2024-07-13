@@ -1,10 +1,23 @@
 import React from "react";
-import About from "./About";
+import { useAppContext } from "../AppContext/AppContext";
+type props = {
+    openModal: React.Dispatch<React.SetStateAction<boolean>>;
+};
+const Footer: React.FC<props> = ({ openModal }) => {
+    const { logout, user } = useAppContext();
 
-const Footer: React.FC = () => {
     return (
         <div>
-            <About />
+            <div className="help">
+                <button className="help-button" onClick={() => openModal(true)}>
+                    Help 💡
+                </button>
+                {user.ssoToken && (
+                    <button onClick={logout} className="logout-button">
+                        Logout
+                    </button>
+                )}
+            </div>
             <footer>
                 <p>
                     Maintained by{" "}
