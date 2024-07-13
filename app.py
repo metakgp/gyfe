@@ -174,6 +174,12 @@ def elective(elective):
             "ssoToken": request.headers["SSO-Token"],
         }
         
+        missing = check_missing_fields(all_fields)
+        if len(missing) > 0:
+            return ErpResponse(
+                False, f"Missing Fields: {', '.join(missing)}", status_code=400
+            ).to_response()
+
         session = requests.Session()
         erp_utils.set_cookie(session, "ssoToken", all_fields["ssoToken"])
         if not erp.session_alive(session=session):
@@ -181,12 +187,6 @@ def elective(elective):
                 False, f"Session isn't alive. PLease login again.", status_code=401
             ).to_response()
         
-        missing = check_missing_fields(all_fields)
-        if len(missing) > 0:
-            return ErpResponse(
-                False, f"Missing Fields: {', '.join(missing)}", status_code=400
-            ).to_response()
-
         DEPT = all_fields["roll_number"][2:4]
         current_month = datetime.now().month
         current_year = datetime.now().year
