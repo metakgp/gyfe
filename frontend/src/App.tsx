@@ -12,6 +12,7 @@ const App: React.FC = () => {
     return (
         <>
             <main>
+                <Toaster position="bottom-center" />
                 <Circles />
                 <div id="wrapper">
                     <div className="wrapper-item">
@@ -27,7 +28,6 @@ const App: React.FC = () => {
                 </div>
             </main>
             {openModal && <Modal closeModal={setOpenModal} />}
-            <Toaster position="bottom-center" />
         </>
     );
 };
