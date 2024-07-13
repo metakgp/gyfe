@@ -15,7 +15,7 @@ const schema = yup.object().shape({
     roll_number: yup
         .string()
         .required("Roll number is required!")
-        .matches(/^\d{2}[A-Z]{2}\d{5}$/, "Please enter valid roll number!"),
+        .matches(/^\d{2}[A-Z]{2}[A-Z0-9]{5}$/, "Please enter valid roll number!"),
     password: yup.string().required("Password is required!"),
 });
 
@@ -111,7 +111,7 @@ const RollForm: React.FC = () => {
                         {errors.password?.message || "\u00A0"}
                     </span>
                 </div>
-                <button type="submit" className="submit-button">
+                <button type="submit" className="submit-button" disabled={isSubmitting}>
                     {isSubmitting ? <Spinner /> : "Get security question"}
                 </button>
             </form>
