@@ -106,6 +106,10 @@ def request_otp():
 
         session = requests.Session()
         erp_utils.set_cookie(session, "JSESSIONID", all_fields["sessionToken"])
+        if not erp.session_alive(session=session):
+            return ErpResponse(
+                False, f"Session isn't alive. PLease login again.", status_code=401
+            ).to_response()
         erp.request_otp(
             headers=headers, session=session, login_details=login_details, log=True
         )
@@ -146,6 +150,10 @@ def login():
 
         session = requests.Session()
         erp_utils.set_cookie(session, "JSESSIONID", all_fields["sessionToken"])
+        if not erp.session_alive(session=session):
+            return ErpResponse(
+                False, f"Session isn't alive. PLease login again.", status_code=401
+            ).to_response()
         ssoToken = erp.signin(
             headers=headers, session=session, login_details=login_details, log=True
         )
@@ -165,12 +173,20 @@ def elective(elective):
             "roll_number": data.get("roll_number"),
             "ssoToken": request.headers["SSO-Token"],
         }
+        
         missing = check_missing_fields(all_fields)
         if len(missing) > 0:
             return ErpResponse(
                 False, f"Missing Fields: {', '.join(missing)}", status_code=400
             ).to_response()
 
+        session = requests.Session()
+        erp_utils.set_cookie(session, "ssoToken", all_fields["ssoToken"])
+        if not erp.session_alive(session=session):
+            return ErpResponse(
+                False, f"Session isn't alive. PLease login again.", status_code=401
+            ).to_response()
+        
         DEPT = all_fields["roll_number"][2:4]
         current_month = datetime.now().month
         current_year = datetime.now().year
