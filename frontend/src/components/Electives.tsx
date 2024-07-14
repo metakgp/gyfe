@@ -8,14 +8,14 @@ const Electives: React.FC = () => {
     const { user, logout } = useAppContext();
     const [isBreadthDownloading, setIsBreadthDownloading] = useState(false);
     const [isDepthDownloading, setIsDepthDownloading] = useState(false);
+
     const getElective = async (elective: string) => {
         const formData = new URLSearchParams();
         formData.append("roll_number", user.rollNo);
-        {
-            elective == "breadth"
-                ? setIsBreadthDownloading(true)
-                : setIsDepthDownloading(true);
-        }
+
+        elective == "breadth"
+            ? setIsBreadthDownloading(true)
+            : setIsDepthDownloading(true);
 
         try {
             const res = await fetch(`${BACKEND_URL}/elective/${elective}`, {
@@ -27,12 +27,14 @@ const Electives: React.FC = () => {
                 body: formData.toString(),
             });
 
-            const resData = await res.json();
-
             if (!res.ok) {
+                const resData = await res.json();
                 toast.error(resData.message);
                 if (res.status == 401)
-                    if (resData.message == "Session isn't alive. PLease login again.")
+                    if (
+                        resData.message ==
+                        "Session isn't alive. PLease login again."
+                    )
                         logout();
                 return;
             }
@@ -51,11 +53,9 @@ const Electives: React.FC = () => {
             toast.error(`Error fetching ${elective} electives!`);
             console.error("Error fetching breadth electives:", error);
         } finally {
-            {
-                elective == "breadth"
-                    ? setIsBreadthDownloading(false)
-                    : setIsDepthDownloading(false);
-            }
+            elective == "breadth"
+                ? setIsBreadthDownloading(false)
+                : setIsDepthDownloading(false);
         }
     };
 
