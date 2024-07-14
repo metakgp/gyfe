@@ -63,6 +63,8 @@ const SecurityQueForm: React.FC = () => {
                 if (res.status == 401)
                     if (resData.message == "Invalid Password" || resData.message == "Session isn't alive. PLease login again.")
                         return setAuth((prev) => ({ ...prev, currentStep: 0 }));
+                    else if(resData.message == "Invalid Security Question Answer")
+                        return
 
                 if (res.status == 500) throw new Error(resData.message);
 
