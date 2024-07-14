@@ -30,9 +30,9 @@ const Electives: React.FC = () => {
             const resData = await res.json();
 
             if (!res.ok) {
-                toast.error("Some Error Occured. Please Try Again.");
+                toast.error(resData.message);
                 if (res.status == 401)
-                    if (resData.message == "Invalid Password" || resData.message == "Session isn't alive. PLease login again.")
+                    if (resData.message == "Session isn't alive. PLease login again.")
                         logout();
                 return;
             }
