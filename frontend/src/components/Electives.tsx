@@ -5,7 +5,7 @@ import { useAppContext } from "../AppContext/AppContext";
 import Spinner from "./Spinner";
 
 const Electives: React.FC = () => {
-    const { user } = useAppContext();
+    const { user, logout } = useAppContext();
     const [isBreadthDownloading, setIsBreadthDownloading] = useState(false);
     const [isDepthDownloading, setIsDepthDownloading] = useState(false);
     const getElective = async (elective: string) => {
@@ -27,8 +27,13 @@ const Electives: React.FC = () => {
                 body: formData.toString(),
             });
 
+            const resData = await res.json();
+
             if (!res.ok) {
-                toast.error("Some Error Occured. Please Try Again.");
+                toast.error(resData.message);
+                if (res.status == 401)
+                    if (resData.message == "Session isn't alive. PLease login again.")
+                        logout();
                 return;
             }
 

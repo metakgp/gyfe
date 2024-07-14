@@ -61,7 +61,7 @@ const SecurityQueForm: React.FC = () => {
                     return;
                 }
                 if (res.status == 401)
-                    if (resData.message == "Invalid Password")
+                    if (resData.message == "Invalid Password" || resData.message == "Session isn't alive. PLease login again.")
                         return setAuth((prev) => ({ ...prev, currentStep: 0 }));
 
                 if (res.status == 500) throw new Error(resData.message);
@@ -112,7 +112,7 @@ const SecurityQueForm: React.FC = () => {
                     return;
                 }
                 if (res.status == 401)
-                    if (resData.message == "Invalid Password")
+                    if (resData.message == "Invalid Password" || resData.message == "Session isn't alive. PLease login again.")
                         return setAuth((prev) => ({ ...prev, currentStep: 0 }));
                 if (resData.message == "Invalid OTP")
                     return setAuth((prev) => ({ ...prev, currentStep: 1 }));
