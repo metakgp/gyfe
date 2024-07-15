@@ -23,17 +23,16 @@ let circles_list = [
 const Circles: React.FC = () => {
     return (
         <div className="circle-container">
-            {circles_list.map((x) => (
-                <>
-                    <div
-                        className="circle"
-                        style={{
-                            top: `${x.position[0]}%`,
-                            left: `${x.position[1]}%`,
-                            boxShadow: x.color,
-                        }}
-                    />
-                </>
+            {circles_list.map((x, i) => (
+                <div
+                    key={i}
+                    className="circle"
+                    style={{
+                        top: `${x.position[0]}%`,
+                        left: `${x.position[1]}%`,
+                        boxShadow: x.color,
+                    }}
+                />
             ))}
         </div>
     );
