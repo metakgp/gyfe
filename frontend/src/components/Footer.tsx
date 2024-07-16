@@ -20,16 +20,22 @@ const Footer: React.FC<props> = ({ openModal }) => {
             </div>
             <footer>
                 <p>
-                    Maintained by{" "}
+                    Contribute to this project on{" "}
+                    <strong>
+                        <a
+                            href="https://github.com/metakgp/gyfe"
+                            target="_blank"
+                        >
+                            GitHub
+                        </a>
+                    </strong>{" "}
+                    | Powered by{" "}
                     <strong>
                         <a target="_blank" href="https://metakgp.github.io/">
                             <span className="metakgp">MetaKGP</span>
                         </a>
                     </strong>{" "}
-                    with<strong> ❤️ </strong>at{" "}
-                    <a target="_blank" href="https://github.com/metakgp/gyfe">
-                        <strong>GitHub</strong>
-                    </a>
+                    with ❤️
                 </p>
             </footer>
         </div>
