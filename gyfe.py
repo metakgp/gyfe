@@ -11,12 +11,11 @@ import re
 import json
 from typing import Literal
 
-DEPT: str = None
-
+ROLL_NUMBER :str = None
 try:
     import erpcreds  # type: ignore
 
-    DEPT = erpcreds.ROLL_NUMBER[2:4]
+    ROLL_NUMBER = erpcreds.ROLL_NUMBER
     manual = False
 except Exception:
     manual = True
@@ -357,12 +356,13 @@ def save_breadths(
 
 
 def fetch_response(
-    acad_session: str, semester: str, year: int, elective: str, DEPT: str, ssoToken: str
+    acad_session: str, semester: str, year: int, elective: str, ROLL_NUMBER: str, ssoToken: str
 ) -> tuple[requests.Response, ...]:
     headers = {
         "timeout": "20",
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
     }
+    DEPT = ROLL_NUMBER[2:4]
 
     session = requests.Session()
     erp_utils.set_cookie(session, "ssoToken", ssoToken)
@@ -389,7 +389,7 @@ def fetch_response(
 
     sem: int = 2 * year - 1 if semester == "AUTUMN" else 2 * year
     COURSES_URL: str = (
-        f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={sem}"
+        f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={sem}&rollno={ROLL_NUMBER}"
     )
 
     SUBJ_LIST_RESP: requests.Response = session.get(SUBJ_LIST_URL, headers=headers)
@@ -414,10 +414,10 @@ def main():
         _, ssoToken = erp.login(
             headers, session, LOGGING=True, SESSION_STORAGE_FILE=".session"
         )
-        DEPT = (
-            erp.ROLL_NUMBER[2:4]
+        ROLL_NUMBER = (
+            erp.ROLL_NUMBER
             if erp.ROLL_NUMBER
-            else input("Enter your department code: ")
+            else input("Enter your roll number: ")
         )
     elif args.notp:
         _, ssoToken = erp.login(
@@ -444,20 +444,20 @@ def main():
 
     if args.electives == "breadth":
         responses = fetch_response(
-            acad_session, semester, year, elective, DEPT, ssoToken
+            acad_session, semester, year, elective, ROLL_NUMBER, ssoToken
         )
         save_breadths(responses)
         depth = input("Do you want to get depth also? (y/N) [Default: no]: ").lower()
         if depth == "y":
             elective = "depth"
             responses = fetch_response(
-                acad_session, semester, year, elective, DEPT, ssoToken
+                acad_session, semester, year, elective, ROLL_NUMBER, ssoToken
             )
             save_depths(responses)
 
     elif args.electives == "depth":
         responses = fetch_response(
-            acad_session, semester, year, elective, DEPT, ssoToken
+            acad_session, semester, year, elective, ROLL_NUMBER, ssoToken
         )
         save_depths(responses)
         breadth = input(
@@ -466,7 +466,7 @@ def main():
         if breadth == "y":
             elective = "breadth"
             responses = fetch_response(
-                acad_session, semester, year, elective, DEPT, ssoToken
+                acad_session, semester, year, elective, ROLL_NUMBER, ssoToken
             )
             save_breadths(responses)
 
