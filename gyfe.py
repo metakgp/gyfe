@@ -301,7 +301,7 @@ def save_breadths(
     df = pd.DataFrame(data=courses)
 
     # for some reason, some empty slots are not being replaced
-    df["Slot"].replace("", "Not alloted yet", inplace=True)
+    df.replace({"Slot": {"": "Not alloted yet"}}, inplace=True)
 
     core_course_codes = find_core_courses(response[2])
 
