@@ -196,7 +196,7 @@ def elective(elective):
         year = int(data.get("year")) if data.get("year") else year
 
         responses = gyfe.fetch_response(
-            acad_session, semester, year, elective, DEPT, all_fields["ssoToken"]
+            acad_session, semester, year, elective, all_fields["roll_number"], all_fields["ssoToken"]
         )
 
         if not all(responses):
