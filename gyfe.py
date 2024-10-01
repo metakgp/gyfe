@@ -87,6 +87,9 @@ def find_all_unavailable_slots(unavailable_slots: list[str]) -> list[str]:
             )
     return list(set(all_unavailable_slots))
 
+def out(data):
+    with open('out.txt' , 'a') as file:
+        file.write(str(data))
 
 def save_depths(
     response: tuple,
@@ -118,26 +121,21 @@ def save_depths(
     rows = soup.find_all("tr")
 
     depth_course_codes = []
-    venues = []
 
-    # Loop through each row and extract the course details
     for row in rows:
-        cells = row.find_all("td", align="center")
-        # pattern = r"([A-Z0-9\s-]+)<br/>([A-Z0-9\s-]+)"  # compulsory courses have prof mentioned in 2nd line, using this to filter out
-        for cell in cells:
-            a_tag = cell.find("a")
-            # matches = re.findall(pattern, str(a_tag))
-            try:
-                matches = a_tag.find_all(string=True)
-            except Exception:
-                matches = []
-            if len(matches) > 1:
-                course_code = matches[0]
-                depth_course_codes.append(course_code)
+        cols = row.find_all('td')
+        
+        if len(cols) >= 5: 
+            elective_type = cols[4].get_text(strip=True)
+            subject_code = cols[0].get_text(strip=True)
+            
+            # Check if the elective type contains 'Depth Elective'
+            if "Depth Elective" in elective_type:
+                depth_course_codes.append(subject_code)
 
+    depth_course_codes = [item for item in depth_course_codes if item]
     data = {"Course Code": depth_course_codes}
     df_depths = pd.DataFrame(data=data)
-    df_depths = df_depths.drop_duplicates(subset=["Course Code"])
 
     # * Get code of core courses
     core_course_codes = find_core_courses(response[2])
@@ -152,11 +150,6 @@ def save_depths(
     courses = []
     parentTable = soup.find("table", {"id": "disptab"})
     rows = parentTable.find_all("tr")
-
-    try:
-        cc = course_code.strip()
-    except Exception:
-        cc = None
 
     for row in rows[1:]:
         if "bgcolor" in row.attrs:
@@ -178,7 +171,7 @@ def save_depths(
         for lst in code_list:
             pos = code_list.index(lst)
             for ele in lst:
-                if cc == ele:
+                if course["Course Code"].strip() == ele:
                     course["Minor"] = course_list[pos]
 
         courses.append(course)
@@ -368,32 +361,28 @@ def fetch_response(
     erp_utils.set_cookie(session, "ssoToken", ssoToken)
 
     TIMETABLE_URL: str = (
-        f"https://erp.iitkgp.ac.in/Acad/view/dept_final_timetable.jsp?action=second&course={DEPT}&session={acad_session}&index={year}&semester={semester}&dept={DEPT}"
+        f"https://erp.iitkgp.ac.in/Acad/new_curr_subject/get_details.jsp?action=second&year={year}&course={DEPT}&session1={acad_session}&type=UG"
     )
     ERP_ELECTIVES_URL: str = "https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp"
-
-    if elective == "depth":
-        SUBJ_LIST_URL: str = (
-            f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&for_session={acad_session}&for_semester={semester}&dept={DEPT}"
-        )
-        TIMETABLE_RESP: requests.Response = session.get(TIMETABLE_URL, headers=headers)
-        ERP_ELECTIVES_RESP: requests.Response = None
-    elif elective == "breadth":
-        SUBJ_LIST_URL: str = (
-            f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
-        )
-        ERP_ELECTIVES_RESP: requests.Response = session.get(
-            ERP_ELECTIVES_URL, headers=headers
-        )
-        TIMETABLE_RESP: requests.Response = None
-
+    SUBJ_LIST_URL: str = (
+        f"https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept={DEPT}"
+    )
     sem: int = 2 * year - 1 if semester == "AUTUMN" else 2 * year
     COURSES_URL: str = (
         f"https://erp.iitkgp.ac.in/Academic/student_performance_details_ug.htm?semno={sem}"
     )
 
+    if elective == "depth":
+        TIMETABLE_RESP: requests.Response = session.get(TIMETABLE_URL, headers=headers)
+        ERP_ELECTIVES_RESP: requests.Response = None
+    elif elective == "breadth":
+        ERP_ELECTIVES_RESP: requests.Response = session.get(
+            ERP_ELECTIVES_URL, headers=headers
+        )
+        TIMETABLE_RESP: requests.Response = None   
+
     SUBJ_LIST_RESP: requests.Response = session.get(SUBJ_LIST_URL, headers=headers)
-    COURSES_RESP: requests.Response = session.post(COURSES_URL, headers=headers)
+    COURSES_RESP: requests.Response = session.post(COURSES_URL, headers=headers, data={"order":"asc"})
 
     if elective == "depth":
         return (TIMETABLE_RESP, SUBJ_LIST_RESP, COURSES_RESP)
