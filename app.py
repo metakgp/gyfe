@@ -1,4 +1,10 @@
-from flask import Flask, request, jsonify, after_this_request, send_from_directory
+from flask import (
+    Flask,
+    request,
+    jsonify,
+    after_this_request,
+    send_from_directory,
+)
 import iitkgp_erp_login.erp as erp
 import iitkgp_erp_login.utils as erp_utils
 import logging
@@ -11,9 +17,10 @@ from typing import Dict, List
 
 app = Flask(__name__)
 CORS(app)
+
 headers = {
     "timeout": "20",
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36",
+    "User-Agent": "Mozilla/5.0",
 }
 
 
@@ -35,14 +42,14 @@ class ErpResponse:
         self.status_code = status_code
 
         if not success:
-            logging.error(f" {message}")
+            logging.error(message)
 
     def to_dict(self):
         response = {"status": "success" if self.success else "error"}
         if self.message:
             response["message"] = self.message
         if self.data:
-            response |= self.data
+            response.update(self.data)
         return response
 
     def to_response(self):
@@ -53,13 +60,12 @@ class ErpResponse:
 def get_secret_question():
     try:
         data = request.form
-        all_fields = {
-            "roll_number": data.get("roll_number"),
-        }
+        all_fields = {"roll_number": data.get("roll_number")}
+
         missing = check_missing_fields(all_fields)
-        if len(missing) > 0:
+        if missing:
             return ErpResponse(
-                False, f"Missing Fields: {', '.join(missing)}", status_code=400
+                False, f"Missing Fields: {', '.join(missing)}", 400
             ).to_response()
 
         session = requests.Session()
@@ -69,16 +75,19 @@ def get_secret_question():
             roll_number=all_fields["roll_number"],
             log=True,
         )
+
         sessionToken = erp_utils.get_cookie(session, "JSESSIONID")
 
         return ErpResponse(
             True,
-            data={"SECRET_QUESTION": secret_question, "SESSION_TOKEN": sessionToken},
+            data={
+                "SECRET_QUESTION": secret_question,
+                "SESSION_TOKEN": sessionToken,
+            },
         ).to_response()
-    except erp.ErpLoginError as e:
-        return ErpResponse(False, str(e), status_code=401).to_response()
+
     except Exception as e:
-        return ErpResponse(False, str(e), status_code=500).to_response()
+        return ErpResponse(False, str(e), 500).to_response()
 
 
 @app.route("/request-otp", methods=["POST"])
@@ -89,12 +98,13 @@ def request_otp():
             "roll_number": data.get("roll_number"),
             "password": data.get("password"),
             "secret_answer": data.get("secret_answer"),
-            "sessionToken": request.headers["Session-Token"],
+            "sessionToken": request.headers.get("Session-Token"),
         }
+
         missing = check_missing_fields(all_fields)
-        if len(missing) > 0:
+        if missing:
             return ErpResponse(
-                False, f"Missing Fields: {', '.join(missing)}", status_code=400
+                False, f"Missing Fields: {', '.join(missing)}", 400
             ).to_response()
 
         login_details = erp.get_login_details(
@@ -106,17 +116,17 @@ def request_otp():
 
         session = requests.Session()
         erp_utils.set_cookie(session, "JSESSIONID", all_fields["sessionToken"])
+
         erp.request_otp(
             headers=headers, session=session, login_details=login_details, log=True
         )
 
         return ErpResponse(
-            True, message="OTP has been sent to your connected email accounts"
+            True, message="OTP sent successfully"
         ).to_response()
-    except erp.ErpLoginError as e:
-        return ErpResponse(False, str(e), status_code=401).to_response()
+
     except Exception as e:
-        return ErpResponse(False, str(e), status_code=500).to_response()
+        return ErpResponse(False, str(e), 500).to_response()
 
 
 @app.route("/login", methods=["POST"])
@@ -128,12 +138,13 @@ def login():
             "password": data.get("password"),
             "secret_answer": data.get("secret_answer"),
             "otp": data.get("otp"),
-            "sessionToken": request.headers["Session-Token"],
+            "sessionToken": request.headers.get("Session-Token"),
         }
+
         missing = check_missing_fields(all_fields)
-        if len(missing) > 0:
+        if missing:
             return ErpResponse(
-                False, f"Missing Fields: {', '.join(missing)}", status_code=400
+                False, f"Missing Fields: {', '.join(missing)}", 400
             ).to_response()
 
         login_details = erp.get_login_details(
@@ -142,90 +153,96 @@ def login():
             secret_answer=all_fields["secret_answer"],
             sessionToken=all_fields["sessionToken"],
         )
+
         login_details["email_otp"] = all_fields["otp"]
 
         session = requests.Session()
         erp_utils.set_cookie(session, "JSESSIONID", all_fields["sessionToken"])
+
         ssoToken = erp.signin(
             headers=headers, session=session, login_details=login_details, log=True
         )
 
         return ErpResponse(True, data={"ssoToken": ssoToken}).to_response()
-    except erp.ErpLoginError as e:
-        return ErpResponse(False, str(e), status_code=401).to_response()
+
     except Exception as e:
-        return ErpResponse(False, str(e), status_code=500).to_response()
+        return ErpResponse(False, str(e), 500).to_response()
 
 
 @app.route("/elective/<elective>", methods=["POST"])
 def elective(elective):
     try:
         data = request.form
+        view = request.args.get("view")  # list or download
+
         all_fields = {
             "roll_number": data.get("roll_number"),
-            "ssoToken": request.headers["SSO-Token"],
+            "ssoToken": request.headers.get("SSO-Token"),
         }
-        
+
         missing = check_missing_fields(all_fields)
-        if len(missing) > 0:
+        if missing:
             return ErpResponse(
-                False, f"Missing Fields: {', '.join(missing)}", status_code=400
+                False, f"Missing Fields: {', '.join(missing)}", 400
             ).to_response()
 
         session = requests.Session()
         erp_utils.set_cookie(session, "ssoToken", all_fields["ssoToken"])
+
         if not erp.session_alive(session=session):
             return ErpResponse(
-                False, f"Session isn't alive. PLease login again.", status_code=401
+                False, "Session expired. Please login again.", 401
             ).to_response()
-        
-        DEPT = all_fields["roll_number"][2:4]
-        current_month = datetime.now().month
-        current_year = datetime.now().year
-        if current_month in [1, 2, 3, 4, 5, 6]:
-            semester = "SPRING"
-            acad_session = f"{str(current_year - 1)}-{str(current_year)}"
-            year = current_year - int("20" + all_fields["roll_number"][:2])
-        elif current_month in [7, 8, 9, 10, 11, 12]:
-            semester = "AUTUMN"
-            acad_session = f"{str(current_year)}-{str(current_year + 1)}"
-            year = current_year - int("20" + all_fields["roll_number"][:2]) +1
 
-        semester = data.get("semester") or semester
-        acad_session = data.get("session") or acad_session
-        year = int(data.get("year")) if data.get("year") else year
+        DEPT = all_fields["roll_number"][2:4]
+        now = datetime.now()
+
+        if now.month <= 6:
+            semester = "SPRING"
+            acad_session = f"{now.year - 1}-{now.year}"
+            year = now.year - int("20" + all_fields["roll_number"][:2])
+        else:
+            semester = "AUTUMN"
+            acad_session = f"{now.year}-{now.year + 1}"
+            year = now.year - int("20" + all_fields["roll_number"][:2]) + 1
 
         responses = gyfe.fetch_response(
-            acad_session, semester, year, elective, DEPT, all_fields["ssoToken"]
+            acad_session,
+            semester,
+            year,
+            elective,
+            DEPT,
+            all_fields["ssoToken"],
         )
 
-        if not all(responses):
-            return ErpResponse(
-                False,
-                "Failed to retrieve data..",
-                status_code=500,
-            ).to_response()
+        if not responses:
+            return ErpResponse(False, "Failed to retrieve data.", 500).to_response()
 
+        # ✅ LIST MODE (Frontend rendering)
+        if view == "list":
+            return ErpResponse(True, data={"items": responses}).to_response()
+
+        # ⬇️ DEFAULT: DOWNLOAD MODE
         if elective == "breadth":
-            file_path = gyfe.save_breadths(responses, False, file_type="xlsx")
-        elif elective == "depth":
-            file_path = gyfe.save_depths(responses, False, file_type="xlsx")
+            file_path = gyfe.save_breadths(responses, False, "xlsx")
+        else:
+            file_path = gyfe.save_depths(responses, False, "xlsx")
 
         file_path = f"{file_path}.xlsx"
 
         @after_this_request
-        def remove_file(response):
+        def cleanup(response):
             try:
                 os.remove(file_path)
-            except Exception as error:
-                app.logger.error(
-                    "Error removing or closing downloaded file handle", error
-                )
+            except Exception:
+                pass
             return response
 
-        mydir = os.getcwd()
-        return send_from_directory(path=file_path, directory=mydir, as_attachment=True)
-    except erp.ErpLoginError as e:
-        return ErpResponse(False, str(e), status_code=401).to_response()
+        return send_from_directory(
+            directory=os.getcwd(),
+            path=file_path,
+            as_attachment=True,
+        )
+
     except Exception as e:
-        return ErpResponse(False, str(e), status_code=500).to_response()
+        return ErpResponse(False, str(e), 500).to_response()
