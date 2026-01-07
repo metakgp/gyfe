@@ -59,17 +59,24 @@ def find_all_unavailable_slots(unavailable_slots: list[str]) -> list[str]:
     with open("overlaps.json", "r") as f:
         overlaps = json.load(f)
 
+    # Filter out None values and empty strings
+    unavailable_slots = [slot for slot in unavailable_slots if slot]
+
     # some have more than 1 slot, they are separated
-    for slot in unavailable_slots:
+    for slot in unavailable_slots[:]:  # Create a copy to iterate over
         if "," in slot:
             unavailable_slots.extend(s.strip() for s in slot.split(","))
             # remove the original slot
             unavailable_slots.remove(slot)
 
     for slot in unavailable_slots:
+        if not slot:  # Skip empty strings
+            continue
+            
         if len(slot) == 1:
             # it is a lab slot; check for overlap from overlaps.json
-            all_unavailable_slots.extend(overlaps[slot])
+            if slot in overlaps:
+                all_unavailable_slots.extend(overlaps[slot])
             all_unavailable_slots.append(slot)
 
         # else, if there is F3 slot for example, add F2, F4 to unavailable slots, and vice versa similarly for whatever letters are there
@@ -312,31 +319,41 @@ def save_breadths(
     # Extract course information from the table rows
     courses = []
     parentTable = soup.find("table", {"id": "disptab"})
-    rows = parentTable.find_all("tr")
+    
+    if parentTable is None:
+        print("Warning: Could not find course table. Proceeding without slot filtering.")
+        unavailable_slots = []
+    else:
+        rows = parentTable.find_all("tr")
 
-    for row in rows[1:]:
-        if "bgcolor" in row.attrs:
-            continue
-        cells = row.find_all("td")
-        course = {}
-        course["Course Code"] = cells[0].text
-        try:
-            course["Slot"] = cells[5].text
-        except Exception:
-            course["Slot"] = None
-        courses.append(course)
+        for row in rows[1:]:
+            if "bgcolor" in row.attrs:
+                continue
+            cells = row.find_all("td")
+            
+            # Ensure we have enough cells before accessing
+            if len(cells) > 5:
+                course = {}
+                course["Course Code"] = cells[0].text.strip() if cells[0].text else ""
+                course["Slot"] = cells[5].text.strip() if cells[5].text else None
+                courses.append(course)
 
-    df_all = pd.DataFrame(data=courses)
+        df_all = pd.DataFrame(data=courses)
 
-    # find slot of core courses
-    unavailable_slots = (
-        df_all[df_all["Course Code"].isin(core_course_codes)]["Slot"].unique().tolist()
-    )
+        # find slot of core courses, filtering out None values
+        unavailable_slots = (
+            df_all[df_all["Course Code"].isin(core_course_codes)]["Slot"]
+            .dropna()  # Remove None values
+            .unique()
+            .tolist()
+        )
 
     all_unavailable_slots = find_all_unavailable_slots(unavailable_slots)
 
     # * remove courses with unavailable slots
-    df = df[~df["Slot"].str.contains("|".join(all_unavailable_slots), na=False)]
+    if all_unavailable_slots:
+        df = df[~df["Slot"].str.contains("|".join(all_unavailable_slots), na=False)]
+    
     df.set_index("Course Code", inplace=True)
     # save available electives
 
